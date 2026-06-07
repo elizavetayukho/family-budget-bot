@@ -10,6 +10,7 @@ import {
   handleLinkCode,
   resolveUser,
 } from './handlers';
+import { parseBalanceIntent } from './nlp';
 import prisma from './db';
 
 const WEB_URL = process.env.WEB_APP_URL ?? 'http://localhost:5173';
@@ -86,7 +87,13 @@ bot.command('log', async (ctx) => {
 // ── /balance — show all jars as text ─────────────────────────────────────────
 bot.command('balance', async (ctx) => {
   const args = ctx.match?.trim();
-  await handleBalance(ctx, args || undefined);
+  // Use fuzzy intent parser on the args too ("safety" → Safety jar)
+  if (args) {
+    const intent = parseBalanceIntent(args);
+    await handleBalance(ctx, intent.jarHint ?? args);
+  } else {
+    await handleBalance(ctx, undefined);
+  }
 });
 
 // ── /jars — show jar buttons to tap ──────────────────────────────────────────
@@ -134,12 +141,11 @@ bot.on('callback_query:data', async (ctx) => {
 // ── Text messages ─────────────────────────────────────────────────────────────
 bot.on('message:text', async (ctx) => {
   const text = ctx.message.text.trim();
-  const lower = text.toLowerCase();
 
-  // Balance check by keyword
-  if (lower === 'balance' || lower.startsWith('how much in ')) {
-    const hint = lower.replace('how much in ', '').trim();
-    return handleBalance(ctx, hint || undefined);
+  // Balance intent — check before number detection
+  const balanceIntent = parseBalanceIntent(text);
+  if (balanceIntent.isBalance) {
+    return handleBalance(ctx, balanceIntent.jarHint);
   }
 
   // Account linking: 6-digit code

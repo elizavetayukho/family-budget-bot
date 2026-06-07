@@ -1,10 +1,9 @@
 import { BotContext } from './session';
 import prisma from './db';
 import fetch from 'node-fetch';
+import { parseExpenseAmount, extractJarAndDescription, fuzzyFindJar } from './nlp';
 
 const WEB_URL = process.env.WEB_APP_URL ?? 'http://localhost:5173';
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
 export async function resolveUser(telegramId: string) {
   return prisma.user.findUnique({ where: { telegramId } });
@@ -30,86 +29,6 @@ async function getNBPRate(currency: string): Promise<number | null> {
   } catch {
     return null;
   }
-}
-
-// ── Fuzzy matching ────────────────────────────────────────────────────────────
-
-function levenshtein(a: string, b: string): number {
-  const m = a.length, n = b.length;
-  const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
-    Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
-  );
-  for (let i = 1; i <= m; i++)
-    for (let j = 1; j <= n; j++)
-      dp[i][j] = a[i-1] === b[j-1]
-        ? dp[i-1][j-1]
-        : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
-  return dp[m][n];
-}
-
-function strSimilarity(a: string, b: string): number {
-  if (!a || !b) return 0;
-  const dist = levenshtein(a.toLowerCase(), b.toLowerCase());
-  return 1 - dist / Math.max(a.length, b.length);
-}
-
-type JarList = Awaited<ReturnType<typeof getActiveJars>>;
-
-// Given free text (after amount/currency removed), find the best matching jar
-// and extract description as whatever is left over.
-function parseWithJars(rest: string, jars: JarList): {
-  jar: JarList[0] | null;
-  description: string | undefined;
-} {
-  const cleaned = rest.replace(/^(spent|on|for|-|–)\s*/i, '').trim();
-  if (!cleaned) return { jar: null, description: undefined };
-
-  const words = cleaned.toLowerCase().split(/\s+/);
-
-  let bestJar: JarList[0] | null = null;
-  let bestSim = 0.55; // minimum threshold
-  let bestMatchWords: number[] = []; // indices of words that matched the jar
-
-  for (const jar of jars) {
-    const jarWords = jar.name.toLowerCase().split(/[\s&]+/).filter(w => w.length > 2);
-
-    // Try every window of 1–3 consecutive words in the input
-    for (let i = 0; i < words.length; i++) {
-      for (let len = 1; len <= Math.min(3, words.length - i); len++) {
-        const chunk = words.slice(i, i + len).join(' ');
-        const jarStr = jarWords.join(' ');
-
-        // Compare whole chunk to whole jar name
-        const sim1 = strSimilarity(chunk, jarStr);
-        // Compare chunk to first significant word of jar
-        const sim2 = jarWords.length > 0 ? strSimilarity(chunk, jarWords[0]) : 0;
-        const sim = Math.max(sim1, sim2);
-
-        if (sim > bestSim) {
-          bestSim = sim;
-          bestJar = jar;
-          bestMatchWords = Array.from({ length: len }, (_, k) => i + k);
-        }
-      }
-    }
-  }
-
-  // Description = words that were NOT part of the jar match
-  const descWords = words.filter((_, i) => !bestMatchWords.includes(i));
-  const description = descWords.length > 0 ? descWords.join(' ') : undefined;
-
-  return { jar: bestJar, description };
-}
-
-function parseAmount(text: string): { amount: number; currency: string; rest: string } | null {
-  const t = text.trim();
-  const m = t.match(/(\d+(?:[.,]\d+)?)\s*(PLN|USD|EUR|BYN)?/i);
-  if (!m) return null;
-  const amount = parseFloat(m[1].replace(',', '.'));
-  if (isNaN(amount) || amount <= 0) return null;
-  const currency = (m[2] ?? 'PLN').toUpperCase();
-  const rest = t.slice(m.index! + m[0].length).trim();
-  return { amount, currency, rest };
 }
 
 async function showConfirmation(ctx: BotContext, editMessage = false) {
@@ -186,7 +105,10 @@ export async function handleBalance(ctx: BotContext, jarHint?: string) {
   const today = new Date().getDate();
 
   const targetJars = jarHint
-    ? jars.filter((j) => j.name.toLowerCase().includes(jarHint.toLowerCase()))
+    ? (() => {
+        const match = fuzzyFindJar(jarHint, jars.filter(j => !j.isPersonal));
+        return match ? [match.jar] : [];
+      })()
     : jars.filter((j) => !j.isPersonal);
 
   if (targetJars.length === 0) return ctx.reply(`Couldn't find that jar.`);
@@ -250,12 +172,12 @@ export async function handleExpenseText(ctx: BotContext) {
   if (!user) return ctx.reply(`Link your Telegram account first at ${WEB_URL}/account`);
 
   const text = ctx.message?.text ?? '';
-  const parsed = parseAmount(text);
+  const parsed = parseExpenseAmount(text);
   if (!parsed) return;
 
   const { amount, currency, rest } = parsed;
   const jars = await getActiveJars();
-  const { jar: matchedJarFromText, description } = parseWithJars(rest, jars);
+  const { jar: matchedJarFromText, description } = extractJarAndDescription(rest, jars);
 
   // Handle non-PLN rates
   let rate: number | undefined;
