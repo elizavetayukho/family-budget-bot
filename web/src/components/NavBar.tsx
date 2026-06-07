@@ -1,4 +1,3 @@
-
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -13,20 +12,26 @@ const links = [
 export default function NavBar() {
   const { user, logout } = useAuth();
 
+  const initials = user?.name
+    ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+    : '?';
+
   return (
-    <nav className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
+    <nav className="bg-white/80 backdrop-blur-md sticky top-0 z-20 border-b border-brand-100 px-6 py-3 flex items-center justify-between">
       <div className="flex items-center gap-1">
-        <span className="font-semibold text-gray-700 mr-4">💰 Family Budget</span>
+        <div className="w-7 h-7 rounded-lg gradient-card mr-3 flex items-center justify-center">
+          <span className="text-white text-xs font-bold">FB</span>
+        </div>
         {links.map((l) => (
           <NavLink
             key={l.to}
             to={l.to}
             end={l.to === '/'}
             className={({ isActive }) =>
-              `px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+              `px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
                 isActive
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  ? 'bg-brand-100 text-brand-700'
+                  : 'text-brand-400 hover:text-brand-700 hover:bg-brand-50'
               }`
             }
           >
@@ -35,11 +40,10 @@ export default function NavBar() {
         ))}
       </div>
       <div className="flex items-center gap-3">
-        <span className="text-sm text-gray-500">{user?.name}</span>
-        <button
-          onClick={logout}
-          className="text-sm text-gray-500 hover:text-gray-700"
-        >
+        <div className="w-8 h-8 rounded-full gradient-card flex items-center justify-center">
+          <span className="text-white text-xs font-bold">{initials}</span>
+        </div>
+        <button onClick={logout} className="text-xs text-brand-300 hover:text-brand-600 transition-colors">
           Sign out
         </button>
       </div>

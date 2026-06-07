@@ -85,98 +85,95 @@ export default function Dashboard() {
   const isBrutto = requesterPerson.incomeSource === 'brutto';
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-4">
+    <div className="max-w-5xl mx-auto p-6 space-y-5">
       {/* Month heading + Add expense */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-gray-800">{fmtMonth(state.month)}</h1>
-        <button onClick={() => setShowExpense(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
+        <h1 className="text-2xl font-bold text-brand-900">{fmtMonth(state.month)}</h1>
+        <button onClick={() => setShowExpense(true)} className="bg-brand-600 text-white rounded-xl px-4 py-2 text-sm font-semibold hover:bg-brand-700 transition-colors">
           + Add expense
         </button>
       </div>
 
       {/* Reset summary card */}
       {resetCard && !resetDismissed && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start justify-between">
-          <div>
-            <p className="font-medium text-blue-800 text-sm">
-              {resetCard.month} wrapped.{' '}
-              {resetCard.carryForwards.map((c, i) => (
-                <span key={i}>
-                  {c.name} <span className={c.amount > 0 ? 'text-green-700' : 'text-red-600'}>
-                    {c.amount > 0 ? '+' : ''}{c.amount.toFixed(2)} PLN carried forward
-                  </span>
-                  {i < resetCard.carryForwards.length - 1 ? ' · ' : ''}
+        <div className="bg-brand-100 rounded-2xl p-4 flex items-start justify-between">
+          <p className="text-sm text-brand-700 font-medium">
+            {resetCard.month} wrapped.{' '}
+            {resetCard.carryForwards.map((c, i) => (
+              <span key={i}>
+                {c.name} <span className={c.amount > 0 ? 'text-green-700' : 'text-red-500'}>
+                  {c.amount > 0 ? '+' : ''}{c.amount.toFixed(2)} PLN
                 </span>
-              ))}
-            </p>
-          </div>
+                {i < resetCard.carryForwards.length - 1 ? ' · ' : ''}
+              </span>
+            ))}
+          </p>
           <button onClick={() => { setResetDismissed(true); localStorage.setItem('resetDismissed', new Date().toISOString().slice(0, 7)); }}
-            className="text-blue-400 hover:text-blue-600 ml-4">✕</button>
+            className="text-brand-400 hover:text-brand-700 ml-4 shrink-0">✕</button>
         </div>
       )}
 
       {/* Uncategorised prompt */}
       {state.uncategorisedCount > 0 && (
         <Link to="/history?uncategorised=true"
-          className="block bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800 hover:bg-amber-100">
-          {state.uncategorisedCount} expense{state.uncategorisedCount > 1 ? 's' : ''} need a jar →
+          className="block bg-amber-50 border border-amber-200 rounded-2xl p-3 text-sm text-amber-800 hover:bg-amber-100 transition-colors">
+          ⚠ {state.uncategorisedCount} expense{state.uncategorisedCount > 1 ? 's' : ''} need a jar →
         </Link>
       )}
 
       {/* Income strip */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+      <div className="bg-white rounded-2xl" style={{boxShadow:"0 2px 16px 0 rgba(124,58,237,0.07)"}}>
         <button onClick={() => setIncomeExpanded(!incomeExpanded)}
-          className="w-full flex items-center justify-between p-4 text-left">
-          <div className="flex gap-8">
+          className="w-full flex items-center justify-between p-5 text-left">
+          <div className="flex gap-10">
             <div>
-              <span className="text-xs text-gray-500">Lizaveta</span>
+              <p className="text-xs font-medium text-brand-400 uppercase tracking-wide mb-1">Lizaveta</p>
               <div className="flex items-center gap-2">
-                <span className="font-medium">{fmtPln(state.lizaveta.income)}</span>
+                <span className="text-lg font-bold text-brand-900">{fmtPln(state.lizaveta.income)}</span>
                 {(state.lizaveta.incomeSource === 'estimated' || state.lizaveta.incomeSource === 'brutto') && (
-                  <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
-                    {state.lizaveta.incomeSource === 'estimated' ? 'Estimated' : 'Based on brutto (first month)'}
+                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+                    {state.lizaveta.incomeSource === 'estimated' ? 'Estimated' : 'Brutto'}
                   </span>
                 )}
               </div>
             </div>
             <div>
-              <span className="text-xs text-gray-500">Edgar</span>
+              <p className="text-xs font-medium text-brand-400 uppercase tracking-wide mb-1">Edgar</p>
               <div className="flex items-center gap-2">
-                <span className="font-medium">{fmtPln(state.edgar.income)}</span>
+                <span className="text-lg font-bold text-brand-900">{fmtPln(state.edgar.income)}</span>
                 {(state.edgar.incomeSource === 'estimated' || state.edgar.incomeSource === 'brutto') && (
-                  <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
-                    {state.edgar.incomeSource === 'estimated' ? 'Estimated' : 'Based on brutto'}
+                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+                    {state.edgar.incomeSource === 'estimated' ? 'Estimated' : 'Brutto'}
                   </span>
                 )}
               </div>
             </div>
           </div>
-          <span className="text-gray-400 text-sm">{incomeExpanded ? '▲' : '▼'}</span>
+          <span className="text-brand-300 text-sm">{incomeExpanded ? '▲' : '▼'}</span>
         </button>
 
         {(isEstimated || isBrutto) && (
-          <div className="px-4 pb-3 flex items-center gap-2">
+          <div className="px-5 pb-4 flex items-center gap-2">
             <input type="number" value={nettoInput} onChange={(e) => setNettoInput(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-36" placeholder="Enter netto" />
-            <span className="text-sm text-gray-500">PLN</span>
-            <button onClick={saveNetto} disabled={savingNetto || !nettoInput}
-              className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50">
+              className="bg-brand-50 border border-brand-200 rounded-xl px-3 py-2 text-sm w-36 focus:outline-none focus:ring-2 focus:ring-brand-400"
+              placeholder="Enter netto" />
+            <span className="text-sm text-brand-400">PLN</span>
+            <button onClick={saveNetto} disabled={savingNetto || !nettoInput} className="bg-brand-600 text-white rounded-xl px-3 py-1.5 text-sm font-semibold hover:bg-brand-700 transition-colors disabled:opacity-50">
               Save
             </button>
           </div>
         )}
 
         {incomeExpanded && (
-          <div className="px-4 pb-4 border-t pt-3 grid grid-cols-2 gap-4 text-sm">
+          <div className="px-5 pb-5 border-t border-brand-50 pt-4 grid grid-cols-2 gap-6 text-sm">
             {([['Lizaveta', state.lizaveta], ['Edgar', state.edgar]] as [string, PersonResult][]).map(([name, p]) => (
               <div key={name}>
-                <p className="font-medium text-gray-700 mb-2">{name}</p>
-                <div className="space-y-1 text-gray-600">
-                  <div className="flex justify-between"><span>Income</span><span>{fmtPln(p.income)}</span></div>
-                  <div className="flex justify-between"><span>Overheads (50%)</span><span className="text-red-500">−{fmtPln(p.overheadShare)}</span></div>
-                  {p.personalDeductions > 0 && <div className="flex justify-between"><span>Personal deductions</span><span className="text-red-500">−{fmtPln(p.personalDeductions)}</span></div>}
-                  <div className="flex justify-between font-semibold border-t pt-1"><span>Discretionary</span><span>{fmtPln(p.discretionary)}</span></div>
+                <p className="font-semibold text-brand-900 mb-2">{name}</p>
+                <div className="space-y-1 text-brand-400">
+                  <div className="flex justify-between"><span>Income</span><span className="text-brand-900 font-medium">{fmtPln(p.income)}</span></div>
+                  <div className="flex justify-between"><span>Overheads (50%)</span><span className="text-red-400">−{fmtPln(p.overheadShare)}</span></div>
+                  {p.personalDeductions > 0 && <div className="flex justify-between"><span>Deductions</span><span className="text-red-400">−{fmtPln(p.personalDeductions)}</span></div>}
+                  <div className="flex justify-between font-semibold border-t border-brand-100 pt-1 text-brand-900"><span>Discretionary</span><span>{fmtPln(p.discretionary)}</span></div>
                 </div>
               </div>
             ))}
@@ -184,40 +181,47 @@ export default function Dashboard() {
         )}
       </div>
 
-
       {/* Shared jar cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-        {state.sharedJars.map((jar) => (
-          <button key={jar.id} onClick={() => setActiveJar(jar)}
-            className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-left hover:shadow-md transition-shadow">
-            <p className="text-sm font-medium text-gray-700">{jar.name}</p>
-            <p className={`text-xl font-bold mt-1 ${jar.balance < 0 ? 'text-red-600' : 'text-gray-900'}`}>
-              {fmtPln(jar.balance)}
-            </p>
-            {jar.balance < 0 && (
-              <p className="text-xs text-red-500 mt-0.5">over — carried to next month</p>
-            )}
-            <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-              <div className={`h-1.5 rounded-full ${jar.balance < 0 ? 'bg-red-400' : 'bg-blue-400'}`}
-                style={{ width: `${Math.min(100, jar.totalContribution > 0 ? (jar.totalSpending / jar.totalContribution) * 100 : 0)}%` }} />
-            </div>
-            <p className="text-xs text-gray-400 mt-1">
-              Total: {fmtPln(jar.balance)} · Your share: <span className={jar.myBalance < 0 ? 'text-red-500' : 'text-gray-500'}>{fmtPln(jar.myBalance)}</span>
-            </p>
-            {jar.carryForward !== 0 && (
-              <p className={`text-xs mt-1 font-medium ${jar.carryForward > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                {jar.carryForward > 0 ? '+' : ''}{fmtPln(jar.carryForward)} from last month
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        {state.sharedJars.map((jar, idx) => {
+          const spendPct = jar.totalContribution > 0 ? Math.min(100, (jar.totalSpending / jar.totalContribution) * 100) : 0;
+          const isFeatured = idx === 0;
+          return (
+            <button key={jar.id} onClick={() => setActiveJar(jar)}
+              className={`rounded-2xl p-5 text-left transition-all hover:shadow-lg ${
+                isFeatured ? 'gradient-card text-white' : 'card'
+              }`}>
+              <p className={`text-xs font-semibold uppercase tracking-wide mb-2 ${isFeatured ? 'text-white/70' : 'label'}`}>
+                {jar.name}
               </p>
-            )}
-          </button>
-        ))}
+              <p className={`text-2xl font-bold tabular-nums ${jar.balance < 0 ? (isFeatured ? 'text-red-200' : 'text-red-500') : (isFeatured ? 'text-white' : 'text-brand-900')}`}>
+                {fmtPln(jar.balance)}
+              </p>
+              {jar.balance < 0 && (
+                <p className={`text-xs mt-0.5 ${isFeatured ? 'text-red-200' : 'text-red-400'}`}>over — carried forward</p>
+              )}
+              <div className={`mt-3 h-1.5 rounded-full overflow-hidden ${isFeatured ? 'bg-white/20' : 'bg-brand-100'}`}>
+                <div className={`h-1.5 rounded-full transition-all ${jar.balance < 0 ? 'bg-red-400' : (isFeatured ? 'bg-white' : 'bg-brand-500')}`}
+                  style={{ width: `${spendPct}%` }} />
+              </div>
+              <p className={`text-xs mt-2 ${isFeatured ? 'text-white/60' : 'text-brand-300'}`}>
+                Your share: <span className={isFeatured ? 'text-white font-medium' : (jar.myBalance < 0 ? 'text-red-400 font-medium' : 'text-brand-600 font-medium')}>{fmtPln(jar.myBalance)}</span>
+              </p>
+              {jar.carryForward !== 0 && (
+                <p className={`text-xs mt-1 font-medium ${jar.carryForward > 0 ? (isFeatured ? 'text-green-200' : 'text-green-600') : (isFeatured ? 'text-red-200' : 'text-red-400')}`}>
+                  {jar.carryForward > 0 ? '+' : ''}{fmtPln(jar.carryForward)} from last month
+                </p>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Personal jar */}
-      <div className="bg-gray-900 rounded-xl p-4 text-white">
-        <p className="text-sm text-gray-400">Personal jar</p>
-        <p className="text-2xl font-bold mt-1">{fmtPln(requesterPerson.personalJarBalance)}</p>
-        <p className="text-xs text-gray-500 mt-1">Only visible to you</p>
+      <div className="gradient-card rounded-2xl p-5 text-white">
+        <p className="text-xs font-medium text-white/60 uppercase tracking-wide mb-1">Personal jar</p>
+        <p className="text-3xl font-bold tabular-nums text-white">{fmtPln(requesterPerson.personalJarBalance)}</p>
+        <p className="text-xs text-white/50 mt-1">Only visible to you</p>
       </div>
 
       {showExpense && (
