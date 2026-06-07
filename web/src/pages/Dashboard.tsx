@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
-import { fmtPln } from '../lib/format';
+import { fmtPln, fmtMonth } from '../lib/format';
 import { useToast } from '../context/ToastContext';
 import AddExpenseModal from '../components/AddExpenseModal';
 import JarDrawer from '../components/JarDrawer';
@@ -84,6 +84,9 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-4">
+      {/* Month heading */}
+      <h1 className="text-xl font-semibold text-gray-800">{fmtMonth(state.month)}</h1>
+
       {/* Reset summary card */}
       {resetCard && !resetDismissed && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start justify-between">
@@ -198,6 +201,11 @@ export default function Dashboard() {
                 style={{ width: `${Math.min(100, jar.totalContribution > 0 ? (jar.totalSpending / jar.totalContribution) * 100 : 0)}%` }} />
             </div>
             <p className="text-xs text-gray-400 mt-1">{fmtPln(jar.totalSpending)} of {fmtPln(jar.totalContribution)}</p>
+            {jar.carryForward !== 0 && (
+              <p className={`text-xs mt-1 font-medium ${jar.carryForward > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                {jar.carryForward > 0 ? '+' : ''}{fmtPln(jar.carryForward)} from last month
+              </p>
+            )}
           </button>
         ))}
       </div>
