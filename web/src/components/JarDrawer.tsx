@@ -65,13 +65,13 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
         </div>
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-semibold">{jar.name}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl w-11 h-11 flex items-center justify-center">✕</button>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl w-11 h-11 flex items-center justify-center">✕</button>
         </div>
 
         <div className="p-4 border-b space-y-3">
           {/* Combined balance */}
           <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Total pool</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total pool</p>
             <div className={`text-2xl font-bold ${jar.balance < 0 ? 'text-red-600' : 'text-gray-900'}`}>
               {fmtPln(jar.balance)}
             </div>
@@ -82,7 +82,7 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
               <div className={`h-1.5 rounded-full ${jar.balance < 0 ? 'bg-red-400' : 'bg-blue-400'}`}
                 style={{ width: `${Math.min(100, jar.totalContribution > 0 ? (jar.totalSpending / jar.totalContribution) * 100 : 0)}%` }} />
             </div>
-            <p className="text-xs text-gray-400 mt-1">{fmtPln(jar.totalSpending)} spent of {fmtPln(jar.totalContribution)} total</p>
+            <p className="text-xs text-gray-500 mt-1">{fmtPln(jar.totalSpending)} spent of {fmtPln(jar.totalContribution)} total</p>
             {jar.openingBalance !== 0 && (
               <p className={`text-xs mt-1 font-medium ${jar.openingBalance > 0 ? 'text-green-600' : 'text-red-500'}`}>
                 Opening balance: {jar.openingBalance > 0 ? '+' : ''}{fmtPln(jar.openingBalance)}
@@ -92,7 +92,7 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
 
           {/* Per-person breakdown */}
           <div className="border-t pt-3">
-            <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Your share</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Your share</p>
             <div className={`text-lg font-semibold ${jar.myBalance < 0 ? 'text-red-600' : 'text-gray-900'}`}>
               {fmtPln(jar.myBalance)}
             </div>
@@ -114,13 +114,13 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          {expenses.length === 0 && <p className="text-sm text-gray-400">No expenses this month.</p>}
+          {expenses.length === 0 && <p className="text-sm text-gray-500">No expenses this month.</p>}
           {expenses.map((e) => (
             <button key={e.id} onClick={() => setEditingExpense(e)}
               className="w-full text-left flex items-center justify-between p-2 rounded hover:bg-gray-50 gap-2">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{e.description || '—'}</p>
-                <p className="text-xs text-gray-400">{new Date(e.date).toLocaleDateString('en-GB')} · {e.user.name}</p>
+                <p className="text-xs text-gray-500">{new Date(e.date).toLocaleDateString('en-GB')} · {e.user.name}</p>
               </div>
               <span className={`text-sm font-medium shrink-0 ${e.amountPln < 0 ? 'text-red-600' : ''}`}>
                 {fmtCurrency(e.originalAmount, e.originalCurrency, e.amountPln)}

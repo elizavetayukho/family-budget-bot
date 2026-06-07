@@ -54,18 +54,18 @@ export default function Login() {
             <span className="text-white font-bold text-lg">FB</span>
           </div>
           <h1 className="text-xl font-bold text-brand-900">Family Budget</h1>
-          <p className="text-sm text-brand-400 mt-1">Welcome back</p>
+          <p className="text-sm text-gray-500 mt-1">Welcome back</p>
         </div>
 
         {!resetting ? (
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-brand-400 mb-1.5 uppercase tracking-wide">Email</label>
+              <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Email</label>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
                 className="w-full bg-brand-50 border border-brand-100 rounded-xl px-4 py-2.5 text-sm text-brand-900 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-brand-400 mb-1.5 uppercase tracking-wide">Password</label>
+              <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Password</label>
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
                 className="w-full bg-brand-50 border border-brand-100 rounded-xl px-4 py-2.5 text-sm text-brand-900 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent" />
             </div>
@@ -90,7 +90,7 @@ export default function Login() {
               Send reset link
             </button>
             <button type="button" onClick={() => { setResetting(false); setResetSent(false); }}
-              className="w-full text-center text-sm text-brand-400 hover:text-brand-700">
+              className="w-full text-center text-sm text-gray-500 hover:text-brand-700">
               ← Back to sign in
             </button>
           </form>

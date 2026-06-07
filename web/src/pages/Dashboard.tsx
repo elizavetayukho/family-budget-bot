@@ -117,7 +117,7 @@ export default function Dashboard() {
             ))}
           </p>
           <button onClick={() => { setResetDismissed(true); localStorage.setItem('resetDismissed', new Date().toISOString().slice(0, 7)); }}
-            className="text-brand-400 hover:text-brand-700 ml-4 shrink-0">✕</button>
+            className="text-gray-500 hover:text-brand-700 ml-4 shrink-0">✕</button>
         </div>
       )}
 
@@ -135,7 +135,7 @@ export default function Dashboard() {
           className="w-full flex items-center justify-between p-5 text-left">
           <div className="flex gap-10">
             <div>
-              <p className="text-xs font-medium text-brand-400 uppercase tracking-wide mb-1">Lizaveta</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Lizaveta</p>
               <div className="flex items-center gap-2">
                 <span className="text-lg font-bold text-brand-900">{fmtPln(state.lizaveta.income)}</span>
                 {(state.lizaveta.incomeSource === 'estimated' || state.lizaveta.incomeSource === 'brutto') && (
@@ -146,7 +146,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div>
-              <p className="text-xs font-medium text-brand-400 uppercase tracking-wide mb-1">Edgar</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Edgar</p>
               <div className="flex items-center gap-2">
                 <span className="text-lg font-bold text-brand-900">{fmtPln(state.edgar.income)}</span>
                 {(state.edgar.incomeSource === 'estimated' || state.edgar.incomeSource === 'brutto') && (
@@ -157,7 +157,7 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-          <span className="text-brand-300 text-sm">{incomeExpanded ? '▲' : '▼'}</span>
+          <span className="text-gray-400 text-sm">{incomeExpanded ? '▲' : '▼'}</span>
         </button>
 
         {(isEstimated || isBrutto) && (
@@ -165,7 +165,7 @@ export default function Dashboard() {
             <input type="number" inputMode="decimal" value={nettoInput} onChange={(e) => setNettoInput(e.target.value)}
               className="bg-brand-50 border border-brand-200 rounded-xl px-3 py-2.5 text-base sm:text-sm flex-1 sm:flex-none sm:w-36 focus:outline-none focus:ring-2 focus:ring-brand-400"
               placeholder="Enter netto" />
-            <span className="text-sm text-brand-400">PLN</span>
+            <span className="text-sm text-gray-500">PLN</span>
             <button onClick={saveNetto} disabled={savingNetto || !nettoInput}
               className="bg-brand-600 text-white rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-brand-700 transition-colors disabled:opacity-50 min-h-[44px]">
               Save
@@ -178,7 +178,7 @@ export default function Dashboard() {
             {([['Lizaveta', state.lizaveta], ['Edgar', state.edgar]] as [string, PersonResult][]).map(([name, p]) => (
               <div key={name}>
                 <p className="font-semibold text-brand-900 mb-2">{name}</p>
-                <div className="space-y-1 text-brand-400">
+                <div className="space-y-1 text-gray-500">
                   <div className="flex justify-between"><span>Income</span><span className="text-brand-900 font-medium">{fmtPln(p.income)}</span></div>
                   <div className="flex justify-between"><span>Overheads (50%)</span><span className="text-red-400">−{fmtPln(p.overheadShare)}</span></div>
                   {p.personalDeductions > 0 && <div className="flex justify-between"><span>Deductions</span><span className="text-red-400">−{fmtPln(p.personalDeductions)}</span></div>}
@@ -200,7 +200,7 @@ export default function Dashboard() {
               className={`rounded-2xl p-5 text-left transition-all hover:shadow-lg ${
                 isFeatured ? 'gradient-card text-white' : 'card'
               }`}>
-              <p className={`text-xs font-semibold uppercase tracking-wide mb-2 ${isFeatured ? 'text-white/70' : 'label'}`}>
+              <p className={`text-xs font-semibold uppercase tracking-wide mb-2 ${isFeatured ? 'text-white' : 'text-xs font-semibold text-gray-500 uppercase tracking-wide'}`}>
                 {jar.name}
               </p>
               <p className={`text-2xl font-bold tabular-nums ${jar.balance < 0 ? (isFeatured ? 'text-red-200' : 'text-red-500') : (isFeatured ? 'text-white' : 'text-brand-900')}`}>
@@ -213,7 +213,7 @@ export default function Dashboard() {
                 <div className={`h-1.5 rounded-full transition-all ${jar.balance < 0 ? 'bg-red-400' : (isFeatured ? 'bg-white' : 'bg-brand-500')}`}
                   style={{ width: `${spendPct}%` }} />
               </div>
-              <p className={`text-xs mt-2 ${isFeatured ? 'text-white/60' : 'text-brand-300'}`}>
+              <p className={`text-xs mt-2 ${isFeatured ? 'text-white/90' : 'text-gray-500'}`}>
                 Your share: <span className={isFeatured ? 'text-white font-medium' : (jar.myBalance < 0 ? 'text-red-400 font-medium' : 'text-brand-600 font-medium')}>{fmtPln(jar.myBalance)}</span>
               </p>
               {jar.carryForward !== 0 && (
@@ -228,9 +228,9 @@ export default function Dashboard() {
 
       {/* Personal jar */}
       <div className="gradient-card rounded-2xl p-5 text-white">
-        <p className="text-xs font-medium text-white/60 uppercase tracking-wide mb-1">Personal jar</p>
+        <p className="text-xs font-medium text-white uppercase tracking-wide mb-1">Personal jar</p>
         <p className="text-3xl font-bold tabular-nums text-white">{fmtPln(requesterPerson.personalJarBalance)}</p>
-        <p className="text-xs text-white/50 mt-1">Only visible to you</p>
+        <p className="text-xs text-white/80 mt-1">Only visible to you</p>
       </div>
 
       {showExpense && (

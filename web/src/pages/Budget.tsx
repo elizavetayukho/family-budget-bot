@@ -150,7 +150,7 @@ export default function Budget() {
         <button onClick={() => toggleSection('income')}
           className="w-full flex items-center justify-between mb-3 sm:cursor-default">
           <h2 className="text-base font-semibold text-brand-900">Income</h2>
-          <span className="sm:hidden text-brand-300 text-sm">{openSections.income ? '▲' : '▼'}</span>
+          <span className="sm:hidden text-gray-400 text-sm">{openSections.income ? '▲' : '▼'}</span>
         </button>
         {openSections.income && <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {users.map((u) => {
@@ -238,7 +238,7 @@ export default function Budget() {
         <button onClick={() => toggleSection('overheads')}
           className="w-full flex items-center justify-between mb-3 sm:cursor-default">
           <h2 className="text-base font-semibold text-brand-900">Household overheads</h2>
-          <span className="sm:hidden text-brand-300 text-sm">{openSections.overheads ? '▲' : '▼'}</span>
+          <span className="sm:hidden text-gray-400 text-sm">{openSections.overheads ? '▲' : '▼'}</span>
         </button>
         {openSections.overheads && <div className="bg-white rounded-2xl shadow-sm border border-brand-100 overflow-hidden">
           <table className="w-full text-sm">
@@ -315,7 +315,7 @@ export default function Budget() {
         <button onClick={() => toggleSection('deductions')}
           className="w-full flex items-center justify-between mb-3 sm:cursor-default">
           <h2 className="text-base font-semibold text-brand-900">Personal deductions</h2>
-          <span className="sm:hidden text-brand-300 text-sm">{openSections.deductions ? '▲' : '▼'}</span>
+          <span className="sm:hidden text-gray-400 text-sm">{openSections.deductions ? '▲' : '▼'}</span>
         </button>
         {openSections.deductions && <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {users.map((u) => {

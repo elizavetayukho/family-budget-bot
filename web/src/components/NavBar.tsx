@@ -68,7 +68,7 @@ export default function NavBar() {
             <NavLink key={l.to} to={l.to} end={l.end}
               className={({ isActive }) =>
                 `px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
-                  isActive ? 'bg-brand-100 text-brand-700' : 'text-brand-400 hover:text-brand-700 hover:bg-brand-50'
+                  isActive ? 'bg-brand-100 text-brand-800' : 'text-gray-500 hover:text-brand-700 hover:bg-brand-50'
                 }`
               }>
               {l.label}
@@ -79,7 +79,7 @@ export default function NavBar() {
           <div className="w-8 h-8 rounded-full gradient-card flex items-center justify-center">
             <span className="text-white text-xs font-bold">{initials}</span>
           </div>
-          <button onClick={logout} className="text-xs text-brand-300 hover:text-brand-600 transition-colors">
+          <button onClick={logout} className="text-xs text-gray-500 hover:text-brand-700 transition-colors">
             Sign out
           </button>
         </div>
@@ -107,7 +107,7 @@ export default function NavBar() {
             <NavLink key={t.to} to={t.to} end={t.end}
               className={({ isActive }) =>
                 `flex-1 flex flex-col items-center justify-center py-2 gap-0.5 min-h-[56px] transition-colors ${
-                  isActive ? 'text-brand-600' : 'text-brand-300'
+                  isActive ? 'text-brand-600' : 'text-gray-500'
                 }`
               }>
               {({ isActive }) => (

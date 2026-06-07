@@ -156,7 +156,7 @@ export default function History() {
             </div>
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-brand-900">Filters</h3>
-              <button onClick={() => setShowFilters(false)} className="text-brand-400 text-sm">Done</button>
+              <button onClick={() => setShowFilters(false)} className="text-gray-600 text-sm font-medium">Done</button>
             </div>
             <FilterContent />
           </div>
@@ -165,9 +165,9 @@ export default function History() {
 
       {/* Expense list */}
       <div className="bg-white rounded-2xl shadow-sm border border-brand-100 overflow-hidden">
-        {loading && <div className="p-8 text-center text-brand-300">Loading…</div>}
+        {loading && <div className="p-8 text-center text-gray-500">Loading…</div>}
         {!loading && expenses.length === 0 && (
-          <div className="p-8 text-center text-brand-300">No expenses found.</div>
+          <div className="p-8 text-center text-gray-500">No expenses found.</div>
         )}
         {!loading && expenses.map((e) => (
           <button key={e.id} onClick={() => setEditExpense(e)}
@@ -177,12 +177,12 @@ export default function History() {
                 <span className="text-sm font-medium text-brand-900">
                   {e.jar?.name ?? <span className="text-amber-600">Uncategorised</span>}
                 </span>
-                <span className="text-xs text-brand-300">
+                <span className="text-xs text-gray-500">
                   {new Date(e.date).toLocaleDateString('en-GB')} · {e.user.name}
                 </span>
               </div>
               {e.description && (
-                <p className="text-xs text-brand-400 mt-0.5 line-clamp-2">{e.description}</p>
+                <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{e.description}</p>
               )}
             </div>
             <span className={`text-sm font-semibold shrink-0 tabular-nums ${e.amountPln < 0 ? 'text-red-500' : 'text-brand-900'}`}>

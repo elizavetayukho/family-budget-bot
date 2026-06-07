@@ -12,11 +12,11 @@ export default function ToastContainer() {
           <span className="flex-1 text-sm">{t.message}</span>
           {t.withReload && (
             <button onClick={() => window.location.reload()}
-              className="text-brand-300 text-sm font-semibold hover:text-white whitespace-nowrap">
+              className="text-brand-200 text-sm font-semibold hover:text-white whitespace-nowrap">
               Reload
             </button>
           )}
-          <button onClick={() => removeToast(t.id)} className="text-brand-400 hover:text-white ml-1 text-lg leading-none">
+          <button onClick={() => removeToast(t.id)} className="text-brand-200 hover:text-white ml-1 text-lg leading-none">
             ✕
           </button>
         </div>
