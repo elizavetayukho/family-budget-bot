@@ -86,8 +86,14 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-4">
-      {/* Month heading */}
-      <h1 className="text-xl font-semibold text-gray-800">{fmtMonth(state.month)}</h1>
+      {/* Month heading + Add expense */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-gray-800">{fmtMonth(state.month)}</h1>
+        <button onClick={() => setShowExpense(true)}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
+          + Add expense
+        </button>
+      </div>
 
       {/* Reset summary card */}
       {resetCard && !resetDismissed && (
@@ -178,13 +184,6 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Add expense button */}
-      <div className="flex justify-end">
-        <button onClick={() => setShowExpense(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
-          + Add expense
-        </button>
-      </div>
 
       {/* Shared jar cards */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
