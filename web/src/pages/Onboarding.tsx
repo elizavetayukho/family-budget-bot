@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 
 interface Deduction { name: string; amount: string }
-interface JarAlloc { id: number; name: string; percent: string }
+interface JarAlloc { id: number; name: string; percent: string; openingBalance: string }
 
 export default function Onboarding({ onComplete }: { onComplete?: () => void }) {
   const { user } = useAuth();
@@ -45,7 +45,7 @@ export default function Onboarding({ onComplete }: { onComplete?: () => void }) 
   const loadJars = async () => {
     if (jarsLoaded) return;
     const data = await api.get<{ id: number; name: string; percent: number; isPersonal: boolean; isFood: boolean }[]>('/jars');
-    setJars(data.filter((j) => !j.isPersonal && !j.isFood).map((j) => ({ id: j.id, name: j.name, percent: String(j.percent) })));
+    setJars(data.filter((j) => !j.isPersonal && !j.isFood).map((j) => ({ id: j.id, name: j.name, percent: String(j.percent), openingBalance: '' })));
     setJarsLoaded(true);
   };
 
@@ -92,9 +92,12 @@ export default function Onboarding({ onComplete }: { onComplete?: () => void }) 
         if (d.name && d.amount) await api.post('/deductions', { name: d.name, amountPln: parseFloat(d.amount) });
       }
 
-      // Jar percentages
+      // Jar percentages + opening balances
       for (const j of jars) {
-        await api.patch(`/jars/${j.id}`, { percent: parseFloat(j.percent) || 0 });
+        await api.patch(`/jars/${j.id}`, {
+          percent: parseFloat(j.percent) || 0,
+          openingBalance: j.openingBalance !== '' ? parseFloat(j.openingBalance) || 0 : 0,
+        });
       }
 
       onComplete?.();
@@ -220,14 +223,25 @@ export default function Onboarding({ onComplete }: { onComplete?: () => void }) 
             <h2 className="text-lg font-semibold">Jar allocations</h2>
             <p className="text-sm text-gray-500">Set the % of each person's discretionary income that goes into each shared jar.</p>
             {jars.map((j, i) => (
-              <div key={j.id} className="flex items-center gap-3">
-                <span className="flex-1 text-sm">{j.name}</span>
-                <div className="flex items-center gap-1">
-                  <input type="number" value={j.percent} min="0" max="100" step="0.5"
-                    onChange={(e) => setJars((prev) => prev.map((x, k) => k === i ? { ...x, percent: e.target.value } : x))}
-                    className="w-20 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-right" />
-                  <span className="text-sm text-gray-500">%</span>
+              <div key={j.id} className="space-y-1">
+                <div className="flex items-center gap-3">
+                  <span className="flex-1 text-sm font-medium">{j.name}</span>
+                  <div className="flex items-center gap-1">
+                    <input type="number" value={j.percent} min="0" max="100" step="0.5"
+                      onChange={(e) => setJars((prev) => prev.map((x, k) => k === i ? { ...x, percent: e.target.value } : x))}
+                      className="w-20 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-right" />
+                    <span className="text-sm text-gray-500">%</span>
+                  </div>
                 </div>
+                <div className="flex items-center gap-2 pl-1">
+                  <span className="text-xs text-gray-400 flex-1">Carry-forward from before app (optional)</span>
+                  <input type="number" value={j.openingBalance} step="0.01"
+                    placeholder="0"
+                    onChange={(e) => setJars((prev) => prev.map((x, k) => k === i ? { ...x, openingBalance: e.target.value } : x))}
+                    className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-sm text-right" />
+                  <span className="text-xs text-gray-400">PLN</span>
+                </div>
+                <p className="text-xs text-gray-400 pl-1">Positive = surplus, negative = overspend.</p>
               </div>
             ))}
             <div className={`text-sm font-medium pt-1 ${totalPercent > 100 ? 'text-red-600' : 'text-gray-700'}`}>

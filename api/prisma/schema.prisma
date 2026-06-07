@@ -49,13 +49,14 @@ model Overhead {
 }
 
 model Jar {
-  id          Int       @id @default(autoincrement())
-  name        String
-  percent     Decimal   @default(0)
-  status      String    @default("ACTIVE")
-  archivedAt  DateTime?
-  isPersonal  Boolean   @default(false)
-  isFood      Boolean   @default(false)
+  id             Int       @id @default(autoincrement())
+  name           String
+  percent        Decimal   @default(0)
+  status         String    @default("ACTIVE")
+  archivedAt     DateTime?
+  isPersonal     Boolean   @default(false)
+  isFood         Boolean   @default(false)
+  openingBalance Decimal   @default(0)
 
   expenses      Expense[]
   carryForwards JarCarryForward[]

@@ -16,6 +16,7 @@ interface JarInfo {
   id: number; name: string; balance: number; percent: number;
   totalContribution: number; totalSpending: number;
   myContribution: number; mySpendingShare: number; myBalance: number;
+  openingBalance: number;
 }
 
 interface Props {
@@ -76,6 +77,11 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
                 style={{ width: `${Math.min(100, jar.totalContribution > 0 ? (jar.totalSpending / jar.totalContribution) * 100 : 0)}%` }} />
             </div>
             <p className="text-xs text-gray-400 mt-1">{fmtPln(jar.totalSpending)} spent of {fmtPln(jar.totalContribution)} total</p>
+            {jar.openingBalance !== 0 && (
+              <p className={`text-xs mt-1 font-medium ${jar.openingBalance > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                Opening balance: {jar.openingBalance > 0 ? '+' : ''}{fmtPln(jar.openingBalance)}
+              </p>
+            )}
           </div>
 
           {/* Per-person breakdown */}

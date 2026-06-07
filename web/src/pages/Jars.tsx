@@ -7,6 +7,7 @@ import { useToast } from '../context/ToastContext';
 interface Jar {
   id: number; name: string; percent: number; status: string;
   archivedAt?: string; isPersonal: boolean; isFood: boolean;
+  openingBalance?: number;
 }
 
 export default function Jars() {
@@ -19,6 +20,7 @@ export default function Jars() {
   const [showArchived, setShowArchived] = useState(false);
   const [editPercents, setEditPercents] = useState<Record<number, string>>({});
   const [editNames, setEditNames] = useState<Record<number, string>>({});
+  const [editOpeningBalances, setEditOpeningBalances] = useState<Record<number, string>>({});
   const [confirmArchive, setConfirmArchive] = useState<number | null>(null);
   const [confirmRestore, setConfirmRestore] = useState<number | null>(null);
   const [newJar, setNewJar] = useState({ name: '', percent: '' });
@@ -34,9 +36,15 @@ export default function Jars() {
     setArchived(arch);
     const percents: Record<number, string> = {};
     const names: Record<number, string> = {};
-    active.forEach((j) => { percents[j.id] = String(j.percent); names[j.id] = j.name; });
+    const openingBals: Record<number, string> = {};
+    active.forEach((j) => {
+      percents[j.id] = String(j.percent);
+      names[j.id] = j.name;
+      openingBals[j.id] = j.openingBalance != null && Number(j.openingBalance) !== 0 ? String(j.openingBalance) : '';
+    });
     setEditPercents(percents);
     setEditNames(names);
+    setEditOpeningBalances(openingBals);
   };
 
   useEffect(() => { load(); }, []);
@@ -47,10 +55,12 @@ export default function Jars() {
   const saveAllocations = async () => {
     setBusy(true);
     try {
-      for (const j of sharedJars) {
+      for (const j of jars.filter((j) => !j.isPersonal)) {
+        const ob = editOpeningBalances[j.id];
         await api.patch(`/jars/${j.id}`, {
           name: editNames[j.id] ?? j.name,
           percent: parseFloat(editPercents[j.id] ?? '0') || 0,
+          openingBalance: ob !== '' && ob !== undefined ? parseFloat(ob) || 0 : 0,
         });
       }
       addToast('Saved. Changes apply from next reset.');
@@ -145,6 +155,7 @@ export default function Jars() {
             <tr>
               <th className="text-left px-4 py-2">Jar</th>
               <th className="text-right px-4 py-2">%</th>
+              {isAdmin && <th className="text-right px-4 py-2 text-gray-400">Opening balance</th>}
               {isAdmin && <th className="px-4 py-2" />}
             </tr>
           </thead>
@@ -176,6 +187,21 @@ export default function Jars() {
                     </td>
                     {isAdmin && (
                       <td className="px-4 py-2 text-right">
+                        {!j.isPersonal ? (
+                          <input
+                            type="number"
+                            value={editOpeningBalances[j.id] ?? ''}
+                            step="0.01"
+                            placeholder="0"
+                            onChange={(e) => setEditOpeningBalances((p) => ({ ...p, [j.id]: e.target.value }))}
+                            className="w-24 text-right border-b border-gray-200 focus:border-blue-500 outline-none text-sm"
+                            title="Carry-forward from before the app. Positive = surplus, negative = overspend."
+                          />
+                        ) : <span />}
+                      </td>
+                    )}
+                    {isAdmin && (
+                      <td className="px-4 py-2 text-right">
                         {!j.isPersonal && !j.isFood && (
                           <button onClick={() => setConfirmArchive(j.id)}
                             className="text-xs text-gray-400 hover:text-red-500">Archive</button>
@@ -185,7 +211,7 @@ export default function Jars() {
                   </tr>
                   {isConfirming && (
                     <tr>
-                      <td colSpan={3} className="px-4 py-3 bg-amber-50">
+                      <td colSpan={4} className="px-4 py-3 bg-amber-50">
                         <p className="text-sm text-amber-800">
                           Archiving {j.name}. Remaining balance will move to your Personal jar at next reset. Past transactions stay in history.
                         </p>

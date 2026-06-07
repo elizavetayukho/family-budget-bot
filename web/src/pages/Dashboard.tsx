@@ -16,6 +16,7 @@ interface JarBalance {
   id: number; name: string; percent: number; isPersonal: boolean; isFood: boolean;
   balance: number; totalContribution: number; totalSpending: number; carryForward: number;
   myContribution: number; mySpendingShare: number; myBalance: number;
+  openingBalance: number;
 }
 
 interface DashboardState {
