@@ -128,29 +128,32 @@ export function parseExpenseAmount(raw: string): ParsedExpense | null {
   const amount = parseFloat(numMatch[1].replace(',', '.'));
   if (isNaN(amount) || amount <= 0) return null;
 
-  // Look for currency adjacent to the number
+  // Look for currency adjacent to the number — only remove it from rest if it IS a currency
   let currency = 'PLN';
   const beforeNum = t.slice(0, numMatch.index!).trim().split(/\s+/).pop() ?? '';
   const afterNum = t.slice(numMatch.index! + numMatch[1].length).trim().split(/\s+/)[0] ?? '';
 
   const currBefore = normalizeCurrency(beforeNum);
   const currAfter = normalizeCurrency(afterNum);
+
+  let rest = t.replace(numMatch[1], ' '); // remove the number
+
   if (currAfter) {
     currency = currAfter;
+    rest = rest.replace(new RegExp(`\\b${afterNum}\\b`, 'i'), ' '); // remove currency word
   } else if (currBefore) {
     currency = currBefore;
+    rest = rest.replace(new RegExp(`\\b${beforeNum}\\b`, 'i'), ' '); // remove currency word
   }
 
-  // Remove the amount and currency from text, then strip fillers
-  let rest = t
-    .replace(numMatch[1], ' ')
-    .replace(new RegExp(`\\b${afterNum}\\b`, 'i'), ' ')
-    .replace(new RegExp(`\\b${beforeNum}\\b`, 'i'), ' ')
+  // Strip filler words
+  rest = rest
     .replace(/\s+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(w => !FILLER_WORDS.has(w.toLowerCase()))
+    .join(' ')
     .trim();
-
-  // Strip filler words from the start/anywhere
-  rest = rest.split(/\s+/).filter(w => !FILLER_WORDS.has(w.toLowerCase())).join(' ').trim();
 
   return { amount, currency, rest };
 }
