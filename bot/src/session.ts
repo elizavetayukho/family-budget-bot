@@ -1,7 +1,7 @@
 import { Context, SessionFlavor } from 'grammy';
 
 export interface ExpenseSession {
-  step?: 'confirm' | 'pick_jar' | 'awaiting_rate' | 'confirm_with_jar';
+  step?: 'confirm' | 'pick_jar' | 'awaiting_rate' | 'confirm_with_jar' | 'awaiting_description';
   amount?: number;
   currency?: string;
   jarId?: number | null;

@@ -82,6 +82,30 @@ function matchJar(hint: string, jars: Awaited<ReturnType<typeof getActiveJars>>)
   );
 }
 
+async function showConfirmation(ctx: BotContext, editMessage = false) {
+  const s = ctx.session.expense!;
+  const amountPln = s.currency === 'PLN' ? s.amount! : s.amount! * (s.rate ?? 1);
+  const text = buildConfirmText(s.amount!, s.currency!, amountPln, s.jarName!, s.description, s.rate);
+  const keyboard = { inline_keyboard: [[
+    { text: 'Save ✓', callback_data: 'save' },
+    { text: 'Change jar', callback_data: 'change_jar' },
+    { text: 'Cancel', callback_data: 'cancel' },
+  ]]};
+  ctx.session.expense = { ...s, step: 'confirm' };
+  if (editMessage) await ctx.editMessageText(text, { reply_markup: keyboard });
+  else await ctx.reply(text, { reply_markup: keyboard });
+}
+
+async function promptDescription(ctx: BotContext, editMessage = false) {
+  const keyboard = { inline_keyboard: [[{ text: 'Skip', callback_data: 'skip_description' }, { text: 'Cancel', callback_data: 'cancel' }]] };
+  const text = 'Add a description? (type it or tap Skip)';
+  if (editMessage) {
+    await ctx.editMessageText(text, { reply_markup: keyboard });
+  } else {
+    await ctx.reply(text, { reply_markup: keyboard });
+  }
+}
+
 function buildConfirmText(amount: number, currency: string, amountPln: number, jarName: string, description?: string, rate?: number) {
   const amountStr = currency !== 'PLN'
     ? `${fmt(amount)} ${currency} (${fmt(amountPln)} PLN, rate: ${rate?.toFixed(4)})`
@@ -238,20 +262,13 @@ export async function handleExpenseText(ctx: BotContext) {
     return ctx.reply(`${amountStr} — which jar?`, { reply_markup: { inline_keyboard: keyboard } });
   }
 
-  // Jar matched — go to confirmation
-  ctx.session.expense = { step: 'confirm', amount, currency, rate, jarId: matchedJar.id, jarName: matchedJar.name, description };
-  await ctx.reply(
-    buildConfirmText(amount, currency, amountPln, matchedJar.name, description, rate),
-    {
-      reply_markup: {
-        inline_keyboard: [[
-          { text: 'Save ✓', callback_data: 'save' },
-          { text: 'Change jar', callback_data: 'change_jar' },
-          { text: 'Cancel', callback_data: 'cancel' },
-        ]],
-      },
-    }
-  );
+  // Jar matched — prompt for description if not already provided
+  ctx.session.expense = { step: 'awaiting_description', amount, currency, rate, jarId: matchedJar.id, jarName: matchedJar.name, description };
+  if (description) {
+    await showConfirmation(ctx);
+  } else {
+    await promptDescription(ctx);
+  }
 }
 
 export async function handleCallback(ctx: BotContext) {
@@ -265,6 +282,12 @@ export async function handleCallback(ctx: BotContext) {
   }
 
   if (data === 'save') return saveExpense(ctx);
+
+  if (data === 'skip_description') {
+    ctx.session.expense = { ...ctx.session.expense };
+    await showConfirmation(ctx, true);
+    return;
+  }
 
   if (data === 'change_jar') {
     const session = ctx.session.expense ?? {};
@@ -283,25 +306,10 @@ export async function handleCallback(ctx: BotContext) {
     const jarId = parts[1] === 'null' ? null : Number(parts[1]);
     const jarName = parts.slice(2).join(':');
     const session = ctx.session.expense ?? {};
-    const amount = session.amount ?? 0;
-    const currency = session.currency ?? 'PLN';
-    const rate = session.rate;
-    const amountPln = currency === 'PLN' ? amount : amount * (rate ?? 1);
-
-    ctx.session.expense = { ...session, step: 'confirm', jarId, jarName };
-
-    return ctx.editMessageText(
-      buildConfirmText(amount, currency, amountPln, jarName, session.description, rate),
-      {
-        reply_markup: {
-          inline_keyboard: [[
-            { text: 'Save ✓', callback_data: 'save' },
-            { text: 'Change jar', callback_data: 'change_jar' },
-            { text: 'Cancel', callback_data: 'cancel' },
-          ]],
-        },
-      }
-    );
+    ctx.session.expense = { ...session, step: 'awaiting_description', jarId, jarName };
+    // Prompt for description (edit the jar-picker message)
+    await promptDescription(ctx, true);
+    return;
   }
 }
 
@@ -332,20 +340,17 @@ export async function handleRateInput(ctx: BotContext) {
     return true;
   }
 
-  ctx.session.expense = { step: 'confirm', amount, currency, rate, jarId: matchedJar.id, jarName: matchedJar.name, description };
-  await ctx.reply(
-    buildConfirmText(amount, currency, amountPln, matchedJar.name, description, rate),
-    {
-      reply_markup: {
-        inline_keyboard: [[
-          { text: 'Save ✓', callback_data: 'save' },
-          { text: 'Change jar', callback_data: 'change_jar' },
-          { text: 'Cancel', callback_data: 'cancel' },
-        ]],
-      },
-    }
-  );
+  ctx.session.expense = { step: 'awaiting_description', amount, currency, rate, jarId: matchedJar.id, jarName: matchedJar.name, description };
+  if (description) {
+    await showConfirmation(ctx);
+  } else {
+    await promptDescription(ctx);
+  }
   return true;
+}
+
+export async function handleDescriptionInput(ctx: BotContext) {
+  await showConfirmation(ctx);
 }
 
 async function saveExpense(ctx: BotContext) {

@@ -6,6 +6,7 @@ import {
   handleExpenseText,
   handleCallback,
   handleRateInput,
+  handleDescriptionInput,
   handleLinkCode,
   resolveUser,
 } from './handlers';
@@ -129,6 +130,13 @@ bot.on('message:text', async (ctx) => {
   if (ctx.session.expense?.step === 'awaiting_rate') {
     const handled = await handleRateInput(ctx);
     if (handled) return;
+  }
+
+  // Description input mid-conversation
+  if (ctx.session.expense?.step === 'awaiting_description') {
+    ctx.session.expense = { ...ctx.session.expense, description: text };
+    await handleDescriptionInput(ctx);
+    return;
   }
 
   // Expense parsing: anything with a number in it
