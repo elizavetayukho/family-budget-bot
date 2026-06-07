@@ -48,7 +48,7 @@ function AppRoutes() {
         <ProtectedRoute>
           <div className="min-h-screen flex flex-col">
             <NavBar />
-            <main className="flex-1">
+            <main className="flex-1 pb-16 sm:pb-0">
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/jars" element={<Jars />} />

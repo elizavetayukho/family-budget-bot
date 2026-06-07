@@ -137,14 +137,22 @@ export default function Budget() {
 
   const canEditNetto = (userId: number) => userId === user?.id || isAdmin;
 
+  const [openSections, setOpenSections] = useState({ income: true, overheads: true, deductions: true });
+  const toggleSection = (s: keyof typeof openSections) =>
+    setOpenSections(p => ({ ...p, [s]: !p[s] }));
+
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
-      <h1 className="text-xl font-semibold">Budget</h1>
+    <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-8">
+      <h1 className="text-xl font-semibold text-brand-900">Budget</h1>
 
       {/* Section 1 — Income */}
       <section>
-        <h2 className="text-base font-semibold text-gray-700 mb-3">Income</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <button onClick={() => toggleSection('income')}
+          className="w-full flex items-center justify-between mb-3 sm:cursor-default">
+          <h2 className="text-base font-semibold text-brand-900">Income</h2>
+          <span className="sm:hidden text-brand-300 text-sm">{openSections.income ? '▲' : '▼'}</span>
+        </button>
+        {openSections.income && <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {users.map((u) => {
             const income = getIncome(u.id);
             const bruttoEdit = editBrutto[u.id];
@@ -222,13 +230,17 @@ export default function Budget() {
               </div>
             );
           })}
-        </div>
+        </div>}
       </section>
 
       {/* Section 2 — Household overheads */}
       <section>
-        <h2 className="text-base font-semibold text-gray-700 mb-3">Household overheads</h2>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <button onClick={() => toggleSection('overheads')}
+          className="w-full flex items-center justify-between mb-3 sm:cursor-default">
+          <h2 className="text-base font-semibold text-brand-900">Household overheads</h2>
+          <span className="sm:hidden text-brand-300 text-sm">{openSections.overheads ? '▲' : '▼'}</span>
+        </button>
+        {openSections.overheads && <div className="bg-white rounded-2xl shadow-sm border border-brand-100 overflow-hidden">
           <table className="w-full text-sm">
             <thead className="text-xs text-gray-500 border-b bg-gray-50">
               <tr>
@@ -295,13 +307,17 @@ export default function Budget() {
               <button onClick={addOverhead} className="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-blue-700">+ Add</button>
             </div>
           )}
-        </div>
+        </div>}
       </section>
 
       {/* Section 3 — Personal deductions, side by side */}
       <section>
-        <h2 className="text-base font-semibold text-gray-700 mb-3">Personal deductions</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <button onClick={() => toggleSection('deductions')}
+          className="w-full flex items-center justify-between mb-3 sm:cursor-default">
+          <h2 className="text-base font-semibold text-brand-900">Personal deductions</h2>
+          <span className="sm:hidden text-brand-300 text-sm">{openSections.deductions ? '▲' : '▼'}</span>
+        </button>
+        {openSections.deductions && <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {users.map((u) => {
             const userDeds = getDeductions(u.id);
             const canEdit = u.id === user?.id || isAdmin;
@@ -368,7 +384,7 @@ export default function Budget() {
               </div>
             );
           })}
-        </div>
+        </div>}
       </section>
     </div>
   );

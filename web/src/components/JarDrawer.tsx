@@ -53,13 +53,19 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-30 bg-black/20" onClick={onClose} />
+      <div className="fixed inset-0 z-30 bg-black/30" onClick={onClose} />
 
-      {/* Drawer */}
-      <div className="fixed right-0 top-0 bottom-0 z-40 w-96 bg-white shadow-xl flex flex-col">
+      {/* Drawer — slides from right on desktop, slides up from bottom on mobile */}
+      <div className="fixed z-40 bg-white shadow-xl flex flex-col
+        bottom-0 left-0 right-0 rounded-t-3xl max-h-[90dvh]
+        sm:bottom-auto sm:top-0 sm:right-0 sm:left-auto sm:w-96 sm:h-full sm:rounded-none">
+        {/* Mobile drag handle */}
+        <div className="sm:hidden flex justify-center pt-3 pb-1 cursor-pointer" onClick={onClose}>
+          <div className="w-10 h-1 bg-brand-200 rounded-full" />
+        </div>
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-semibold">{jar.name}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl w-11 h-11 flex items-center justify-center">✕</button>
         </div>
 
         <div className="p-4 border-b space-y-3">

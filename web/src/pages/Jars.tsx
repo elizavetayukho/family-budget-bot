@@ -108,7 +108,7 @@ export default function Jars() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-6">
+    <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Jars</h1>
         {isAdmin && (
@@ -144,7 +144,7 @@ export default function Jars() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-brand-100 overflow-hidden">
         <div className="p-4 border-b bg-gray-50 flex items-center justify-between">
           <span className={`text-sm font-medium ${totalPercent > 100 ? 'text-red-600' : 'text-gray-700'}`}>
             Total allocated: {totalPercent.toFixed(2)}% of discretionary
@@ -154,7 +154,7 @@ export default function Jars() {
           )}
         </div>
 
-        <table className="w-full text-sm">
+        <table className="hidden sm:table w-full text-sm">
           <thead className="text-xs text-gray-500 border-b">
             <tr>
               <th className="text-left px-4 py-2">Jar</th>
@@ -239,10 +239,49 @@ export default function Jars() {
           </tbody>
         </table>
 
+        {/* Mobile card list */}
+        <div className="sm:hidden divide-y divide-brand-50">
+          {jars.filter((j) => !j.isPersonal).map((j) => (
+            <div key={j.id} className="p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                {isAdmin && !j.isFood && !j.isPersonal ? (
+                  <input value={editNames[j.id] ?? j.name}
+                    onChange={(e) => setEditNames((p) => ({ ...p, [j.id]: e.target.value }))}
+                    className="text-base font-semibold text-brand-900 border-b border-brand-200 focus:border-brand-500 outline-none bg-transparent" />
+                ) : (
+                  <span className="text-base font-semibold text-brand-900">{j.name}</span>
+                )}
+                {isAdmin && !j.isFood && !j.isPersonal && (
+                  <button onClick={() => setConfirmArchive(j.id)} className="text-xs text-brand-300 hover:text-red-500 min-h-[44px] px-2">Archive</button>
+                )}
+              </div>
+              {!j.isFood && !j.isPersonal && isAdmin && (
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-brand-400">% of discretionary</span>
+                  <input type="number" value={editPercents[j.id] ?? ''} min="0" max="100" step="0.5"
+                    onChange={(e) => setEditPercents((p) => ({ ...p, [j.id]: e.target.value }))}
+                    className="w-20 text-right border border-brand-200 rounded-xl px-3 py-2 text-sm" />
+                </div>
+              )}
+              {j.isFood && <span className="text-xs text-brand-300">Fixed 2 000 PLN</span>}
+              {j.isPersonal && <span className="text-xs text-brand-300">Remainder after all jars</span>}
+              {confirmArchive === j.id && (
+                <div className="bg-amber-50 rounded-xl p-3 text-sm text-amber-800">
+                  Archiving {j.name}. Balance moves to Personal at next reset.
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={() => doArchive(j.id)} className="bg-amber-600 text-white px-3 py-1.5 rounded-lg text-sm min-h-[44px]">Archive</button>
+                    <button onClick={() => setConfirmArchive(null)} className="text-amber-700 text-sm min-h-[44px] px-2">Cancel</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
         {isAdmin && (
           <div className="p-4 border-t flex justify-end">
             <button onClick={saveAllocations} disabled={busy || totalPercent > 100}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+              className="bg-brand-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:opacity-50 min-h-[44px]">
               {busy ? 'Saving…' : 'Save allocations'}
             </button>
           </div>

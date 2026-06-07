@@ -119,8 +119,10 @@ export default function AddExpenseModal({ preselectedJarId, editExpense, onClose
   };
 
   return (
-    <div className="fixed inset-0 z-40 bg-black/40 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative">
+    <div className="fixed inset-0 z-40 bg-black/40 flex items-end sm:items-center justify-center" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-xl w-full sm:max-w-md p-6 relative overflow-y-auto max-h-[96dvh] sm:max-h-[90vh]">
+        {/* Mobile drag handle */}
+        <div className="sm:hidden w-10 h-1 bg-brand-200 rounded-full mx-auto mb-4" />
         <h2 className="text-lg font-semibold mb-4">{editExpense ? 'Edit expense' : 'Add expense'}</h2>
 
         <div className="space-y-4">
@@ -154,7 +156,7 @@ export default function AddExpenseModal({ preselectedJarId, editExpense, onClose
             <div className="flex-1">
               <label className="block text-sm text-gray-600 mb-1">Amount *</label>
               <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} min="0" step="0.01"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="0.00" />
+                className="w-full border border-gray-300 rounded-lg px-3 py-3 text-base sm:text-sm" placeholder="0.00" inputMode="decimal" />
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">Currency</label>
@@ -171,7 +173,7 @@ export default function AddExpenseModal({ preselectedJarId, editExpense, onClose
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">1 {currency} =</span>
                 <input type="number" value={manualRate} onChange={(e) => setManualRate(e.target.value)}
-                  className="w-28 border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="0.00" />
+                  className="w-28 border border-gray-300 rounded-lg px-3 py-3 text-base sm:text-sm" placeholder="0.00" inputMode="decimal" />
                 <span className="text-sm text-gray-600">PLN</span>
               </div>
             </div>

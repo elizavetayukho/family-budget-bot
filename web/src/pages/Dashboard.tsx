@@ -85,14 +85,22 @@ export default function Dashboard() {
   const isBrutto = requesterPerson.incomeSource === 'brutto';
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-5">
-      {/* Month heading + Add expense */}
+    <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-5">
+      {/* Month heading + Add expense (desktop only — FAB handles mobile) */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-brand-900">{fmtMonth(state.month)}</h1>
-        <button onClick={() => setShowExpense(true)} className="bg-brand-600 text-white rounded-xl px-4 py-2 text-sm font-semibold hover:bg-brand-700 transition-colors">
+        <h1 className="text-xl sm:text-2xl font-bold text-brand-900">{fmtMonth(state.month)}</h1>
+        <button onClick={() => setShowExpense(true)}
+          className="hidden sm:block bg-brand-600 text-white rounded-xl px-4 py-2 text-sm font-semibold hover:bg-brand-700 transition-colors">
           + Add expense
         </button>
       </div>
+
+      {/* Mobile FAB */}
+      <button onClick={() => setShowExpense(true)}
+        className="sm:hidden fixed bottom-20 right-4 z-30 w-14 h-14 gradient-card rounded-full shadow-lg flex items-center justify-center text-white text-2xl font-light"
+        aria-label="Add expense">
+        +
+      </button>
 
       {/* Reset summary card */}
       {resetCard && !resetDismissed && (
@@ -153,12 +161,13 @@ export default function Dashboard() {
         </button>
 
         {(isEstimated || isBrutto) && (
-          <div className="px-5 pb-4 flex items-center gap-2">
-            <input type="number" value={nettoInput} onChange={(e) => setNettoInput(e.target.value)}
-              className="bg-brand-50 border border-brand-200 rounded-xl px-3 py-2 text-sm w-36 focus:outline-none focus:ring-2 focus:ring-brand-400"
+          <div className="px-4 sm:px-5 pb-4 flex items-center gap-2">
+            <input type="number" inputMode="decimal" value={nettoInput} onChange={(e) => setNettoInput(e.target.value)}
+              className="bg-brand-50 border border-brand-200 rounded-xl px-3 py-2.5 text-base sm:text-sm flex-1 sm:flex-none sm:w-36 focus:outline-none focus:ring-2 focus:ring-brand-400"
               placeholder="Enter netto" />
             <span className="text-sm text-brand-400">PLN</span>
-            <button onClick={saveNetto} disabled={savingNetto || !nettoInput} className="bg-brand-600 text-white rounded-xl px-3 py-1.5 text-sm font-semibold hover:bg-brand-700 transition-colors disabled:opacity-50">
+            <button onClick={saveNetto} disabled={savingNetto || !nettoInput}
+              className="bg-brand-600 text-white rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-brand-700 transition-colors disabled:opacity-50 min-h-[44px]">
               Save
             </button>
           </div>
@@ -182,7 +191,7 @@ export default function Dashboard() {
       </div>
 
       {/* Shared jar cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {state.sharedJars.map((jar, idx) => {
           const spendPct = jar.totalContribution > 0 ? Math.min(100, (jar.totalSpending / jar.totalContribution) * 100) : 0;
           const isFeatured = idx === 0;
