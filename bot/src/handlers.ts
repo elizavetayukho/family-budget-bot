@@ -3,7 +3,6 @@ import prisma from './db';
 import fetch from 'node-fetch';
 
 const WEB_URL = process.env.WEB_APP_URL ?? 'http://localhost:5173';
-const API_URL = 'http://localhost:3001';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -33,22 +32,62 @@ async function getNBPRate(currency: string): Promise<number | null> {
   }
 }
 
-function parseExpenseText(text: string): { amount: number; currency: string; jarHint?: string } | null {
-  // e.g. "spent 45 on eating out", "45 PLN food", "50 USD on vacation"
-  const match = text.match(/(\d+(?:[.,]\d+)?)\s*(PLN|USD|EUR|BYN)?\s*(?:on\s+)?(.+)?/i);
-  if (!match) return null;
-  const amount = parseFloat(match[1].replace(',', '.'));
+// Parse: "spent 45 on eating out for pizza"
+// Supports: "45", "45 PLN", "45 USD", "on <jar>", "for <desc>", "- <desc>", "#<desc>"
+function parseExpenseText(text: string): {
+  amount: number;
+  currency: string;
+  jarHint?: string;
+  description?: string;
+} | null {
+  const t = text.trim();
+
+  // Extract amount + optional currency
+  const amountMatch = t.match(/(\d+(?:[.,]\d+)?)\s*(PLN|USD|EUR|BYN)?/i);
+  if (!amountMatch) return null;
+  const amount = parseFloat(amountMatch[1].replace(',', '.'));
   if (isNaN(amount) || amount <= 0) return null;
-  const currency = (match[2] ?? 'PLN').toUpperCase();
-  const jarHint = match[3]?.trim().toLowerCase();
-  return { amount, currency, jarHint };
+  const currency = (amountMatch[2] ?? 'PLN').toUpperCase();
+
+  // Remove the amount+currency from the string to parse the rest
+  let rest = t.slice(amountMatch.index! + amountMatch[0].length).trim();
+  // Remove leading "spent", "on", "for", "-", "–"
+  rest = rest.replace(/^(spent|on|for|-|–)\s*/i, '');
+
+  // Try to extract description after "for", "-", "–", ":"
+  let jarHint: string | undefined;
+  let description: string | undefined;
+
+  // Pattern: "<jar> for <description>" or "<jar> - <description>"
+  const forMatch = rest.match(/^(.+?)\s+(?:for|-|–|:)\s+(.+)$/i);
+  if (forMatch) {
+    jarHint = forMatch[1].trim();
+    description = forMatch[2].trim();
+  } else {
+    // No separator — whole rest is jar hint
+    jarHint = rest || undefined;
+  }
+
+  return { amount, currency, jarHint: jarHint || undefined, description };
 }
 
 function matchJar(hint: string, jars: Awaited<ReturnType<typeof getActiveJars>>) {
-  if (!hint) return undefined;
+  const h = hint.toLowerCase();
+  // Exact match first
+  const exact = jars.find((j) => j.name.toLowerCase() === h);
+  if (exact) return exact;
+  // Partial match
   return jars.find((j) =>
-    j.name.toLowerCase().includes(hint) || hint.includes(j.name.toLowerCase().split(' ')[0])
+    j.name.toLowerCase().includes(h) || h.includes(j.name.toLowerCase().split(' ')[0])
   );
+}
+
+function buildConfirmText(amount: number, currency: string, amountPln: number, jarName: string, description?: string, rate?: number) {
+  const amountStr = currency !== 'PLN'
+    ? `${fmt(amount)} ${currency} (${fmt(amountPln)} PLN, rate: ${rate?.toFixed(4)})`
+    : `${fmt(amount)} PLN`;
+  const descStr = description ? ` · "${description}"` : '';
+  return `${amountStr} · ${jarName}${descStr} — save it?`;
 }
 
 // ── Account linking ───────────────────────────────────────────────────────────
@@ -89,20 +128,19 @@ export async function handleBalance(ctx: BotContext, jarHint?: string) {
 
   const startOfMonth = new Date(`${month}-01T00:00:00.000Z`);
   const endOfMonth = new Date(new Date(startOfMonth).setMonth(startOfMonth.getMonth() + 1));
-  const daysInMonth = (endOfMonth.getTime() - startOfMonth.getTime()) / 86400000;
+  const daysInMonth = Math.round((endOfMonth.getTime() - startOfMonth.getTime()) / 86400000);
   const today = new Date().getDate();
 
-  // Filter to a specific jar if hint given
   const targetJars = jarHint
-    ? jars.filter((j) =>
-        j.name.toLowerCase().includes(jarHint.toLowerCase()) ||
-        jarHint.toLowerCase().includes(j.name.toLowerCase().split(' ')[0])
-      )
-    : jars;
+    ? jars.filter((j) => j.name.toLowerCase().includes(jarHint.toLowerCase()))
+    : jars.filter((j) => !j.isPersonal);
 
-  if (targetJars.length === 0) {
-    return ctx.reply(`Couldn't find that jar.`);
-  }
+  if (targetJars.length === 0) return ctx.reply(`Couldn't find that jar.`);
+
+  const overheads = await prisma.overhead.findMany({ where: { active: true } });
+  const totalOverheads = overheads.reduce((s, o) => s + Number(o.amountPln), 0);
+  const overheadShare = totalOverheads / 2;
+  const allUsers = await prisma.user.findMany();
 
   const lines: string[] = [];
 
@@ -114,14 +152,8 @@ export async function handleBalance(ctx: BotContext, jarHint?: string) {
     });
     const totalSpent = expenses.reduce((s, e) => s + Number(e.amountPln), 0);
 
-    // Calculate total contribution
-    const users = await prisma.user.findMany();
-    const overheads = await prisma.overhead.findMany({ where: { active: true } });
-    const totalOverheads = overheads.reduce((s, o) => s + Number(o.amountPln), 0);
-    const overheadShare = totalOverheads / 2;
-
     let totalContribution = 0;
-    for (const u of users) {
+    for (const u of allUsers) {
       const income = await prisma.income.findUnique({ where: { userId_month: { userId: u.id, month } } });
       const deductions = await prisma.personalDeduction.findMany({ where: { userId: u.id, active: true } });
       const deductTotal = deductions.reduce((s, d) => s + Number(d.amountPln), 0);
@@ -132,32 +164,24 @@ export async function handleBalance(ctx: BotContext, jarHint?: string) {
 
     const carry = await prisma.jarCarryForward.findUnique({ where: { jarId_month: { jarId: jar.id, month } } });
     const balance = totalContribution - totalSpent + Number(carry?.amount ?? 0);
-
-    lines.push(`${jar.name}: ${fmt(balance)} PLN left of ${fmt(totalContribution)} PLN · Day ${today}/${Math.round(daysInMonth)}`);
+    lines.push(`${jar.name}: ${fmt(balance)} PLN left · Day ${today}/${daysInMonth}`);
   }
 
   if (isPrivate) {
-    // Add personal jar
     const personalJar = await prisma.jar.findFirst({ where: { isPersonal: true } });
     if (personalJar) {
       const personalExpenses = await prisma.expense.findMany({
         where: { jarId: personalJar.id, userId: user.id, date: { gte: startOfMonth, lt: endOfMonth } },
       });
       const personalSpent = personalExpenses.reduce((s, e) => s + Number(e.amountPln), 0);
-
       const income = await prisma.income.findUnique({ where: { userId_month: { userId: user.id, month } } });
       const deductions = await prisma.personalDeduction.findMany({ where: { userId: user.id, active: true } });
       const deductTotal = deductions.reduce((s, d) => s + Number(d.amountPln), 0);
-      const overheads = await prisma.overhead.findMany({ where: { active: true } });
-      const totalOverheads = overheads.reduce((s, o) => s + Number(o.amountPln), 0);
       const inc = Number(income?.netto ?? income?.brutto ?? 0);
-      const disc = inc - totalOverheads / 2 - deductTotal;
-
-      const sharedJars = await prisma.jar.findMany({ where: { status: 'ACTIVE', isPersonal: false, isFood: false } });
-      const contributions = sharedJars.reduce((s, j) => s + (disc * Number(j.percent)) / 100, 0);
-      const personalBalance = disc - contributions - personalSpent;
-
-      lines.push(`Personal: ${fmt(personalBalance)} PLN`);
+      const disc = inc - overheadShare - deductTotal;
+      const sharedJarsList = await prisma.jar.findMany({ where: { status: 'ACTIVE', isPersonal: false, isFood: false } });
+      const contributions = sharedJarsList.reduce((s, j) => s + (disc * Number(j.percent)) / 100, 0);
+      lines.push(`Personal: ${fmt(disc - contributions - personalSpent)} PLN`);
     }
   }
 
@@ -169,83 +193,60 @@ export async function handleBalance(ctx: BotContext, jarHint?: string) {
 export async function handleExpenseText(ctx: BotContext) {
   const telegramId = String(ctx.from!.id);
   const user = await resolveUser(telegramId);
-  if (!user) {
-    return ctx.reply(`Link your Telegram account first at ${WEB_URL}/account`);
-  }
+  if (!user) return ctx.reply(`Link your Telegram account first at ${WEB_URL}/account`);
 
   const text = ctx.message?.text ?? '';
   const parsed = parseExpenseText(text);
-  if (!parsed) return; // not an expense message
+  if (!parsed) return;
 
-  const { amount, currency, jarHint } = parsed;
+  const { amount, currency, jarHint, description } = parsed;
   const jars = await getActiveJars();
 
-  // Check if we need a rate
+  // Handle non-PLN rates
+  let rate: number | undefined;
   if (currency !== 'PLN') {
-    let rate: number | null = null;
     if (currency === 'BYN') {
-      // Always manual
-      ctx.session.expense = { step: 'awaiting_rate', amount, currency, jarHint: jarHint };
+      ctx.session.expense = { step: 'awaiting_rate', amount, currency, jarHint, description };
       return ctx.reply(
         `No BYN rate available. Enter the rate (1 BYN = ? PLN):`,
         { reply_markup: { inline_keyboard: [[{ text: 'Cancel', callback_data: 'cancel' }]] } }
       );
     }
-
-    rate = await getNBPRate(currency);
-    if (rate === null) {
-      ctx.session.expense = { step: 'awaiting_rate', amount, currency, jarHint: jarHint };
+    const fetched = await getNBPRate(currency);
+    if (!fetched) {
+      ctx.session.expense = { step: 'awaiting_rate', amount, currency, jarHint, description };
       return ctx.reply(
         `Couldn't fetch ${currency} rate. Enter the rate (1 ${currency} = ? PLN):`,
         { reply_markup: { inline_keyboard: [[{ text: 'Cancel', callback_data: 'cancel' }]] } }
       );
     }
-
-    ctx.session.expense = { ...ctx.session.expense, rate };
+    rate = fetched;
   }
 
-  // Try to match jar
+  const amountPln = currency === 'PLN' ? amount : amount * rate!;
   const matchedJar = jarHint ? matchJar(jarHint, jars) : undefined;
 
-  if (jarHint && !matchedJar) {
-    // Ambiguous — ask user to pick
-    const rate = ctx.session.expense?.rate;
-    ctx.session.expense = { step: 'pick_jar', amount, currency, rate };
+  // No jar matched or no jar given → show jar picker
+  if (!matchedJar) {
+    ctx.session.expense = { step: 'pick_jar', amount, currency, rate, description };
     const keyboard = [
       ...jars.map((j) => [{ text: j.name, callback_data: `jar:${j.id}:${j.name}` }]),
-      [{ text: 'No jar', callback_data: 'jar:null:No jar' }],
+      [{ text: 'No jar (save uncategorised)', callback_data: 'jar:null:No jar' }],
       [{ text: 'Cancel', callback_data: 'cancel' }],
     ];
-    const amountPln = rate ? amount * rate : amount;
-    return ctx.reply(
-      `${fmt(amountPln)} PLN — which jar?`,
-      { reply_markup: { inline_keyboard: keyboard } }
-    );
+    const amountStr = currency !== 'PLN' ? `${fmt(amount)} ${currency} (${fmt(amountPln)} PLN)` : `${fmt(amount)} PLN`;
+    return ctx.reply(`${amountStr} — which jar?`, { reply_markup: { inline_keyboard: keyboard } });
   }
 
-  // Ready for confirmation
-  const rate = ctx.session.expense?.rate ?? 1;
-  const amountPln = currency === 'PLN' ? amount : amount * rate;
-  ctx.session.expense = {
-    step: 'confirm',
-    amount,
-    currency,
-    rate: currency === 'PLN' ? undefined : rate,
-    jarId: matchedJar?.id ?? null,
-    jarName: matchedJar?.name ?? 'No jar',
-  };
-
-  const label = currency !== 'PLN'
-    ? `${fmt(amount)} ${currency} (${fmt(amountPln)} PLN)`
-    : `${fmt(amount)} PLN`;
-
+  // Jar matched — go to confirmation
+  ctx.session.expense = { step: 'confirm', amount, currency, rate, jarId: matchedJar.id, jarName: matchedJar.name, description };
   await ctx.reply(
-    `${label} · ${matchedJar?.name ?? 'No jar'} — save it?`,
+    buildConfirmText(amount, currency, amountPln, matchedJar.name, description, rate),
     {
       reply_markup: {
         inline_keyboard: [[
-          { text: 'Save', callback_data: 'save' },
-          { text: 'Edit', callback_data: 'edit' },
+          { text: 'Save ✓', callback_data: 'save' },
+          { text: 'Change jar', callback_data: 'change_jar' },
           { text: 'Cancel', callback_data: 'cancel' },
         ]],
       },
@@ -256,7 +257,6 @@ export async function handleExpenseText(ctx: BotContext) {
 export async function handleCallback(ctx: BotContext) {
   const data = ctx.callbackQuery?.data;
   if (!data) return;
-
   await ctx.answerCallbackQuery();
 
   if (data === 'cancel') {
@@ -264,36 +264,39 @@ export async function handleCallback(ctx: BotContext) {
     return ctx.editMessageText('OK, nothing saved.');
   }
 
-  if (data === 'save') {
-    return saveExpense(ctx);
-  }
+  if (data === 'save') return saveExpense(ctx);
 
-  if (data === 'edit') {
-    ctx.session.expense = undefined;
-    return ctx.editMessageText('Edit cancelled — enter your expense again.');
+  if (data === 'change_jar') {
+    const session = ctx.session.expense ?? {};
+    ctx.session.expense = { ...session, step: 'pick_jar' };
+    const jars = await getActiveJars();
+    const keyboard = [
+      ...jars.map((j) => [{ text: j.name, callback_data: `jar:${j.id}:${j.name}` }]),
+      [{ text: 'No jar (save uncategorised)', callback_data: 'jar:null:No jar' }],
+      [{ text: 'Cancel', callback_data: 'cancel' }],
+    ];
+    return ctx.editMessageText('Which jar?', { reply_markup: { inline_keyboard: keyboard } });
   }
 
   if (data.startsWith('jar:')) {
-    const [, jarIdStr, jarName] = data.split(':');
-    const jarId = jarIdStr === 'null' ? null : Number(jarIdStr);
+    const parts = data.split(':');
+    const jarId = parts[1] === 'null' ? null : Number(parts[1]);
+    const jarName = parts.slice(2).join(':');
     const session = ctx.session.expense ?? {};
-    const rate = session.rate ?? 1;
     const amount = session.amount ?? 0;
     const currency = session.currency ?? 'PLN';
-    const amountPln = currency === 'PLN' ? amount : amount * rate;
+    const rate = session.rate;
+    const amountPln = currency === 'PLN' ? amount : amount * (rate ?? 1);
 
     ctx.session.expense = { ...session, step: 'confirm', jarId, jarName };
 
-    const label = currency !== 'PLN'
-      ? `${fmt(amount)} ${currency} (${fmt(amountPln)} PLN)`
-      : `${fmt(amount)} PLN`;
-
     return ctx.editMessageText(
-      `${label} · ${jarName} — save it?`,
+      buildConfirmText(amount, currency, amountPln, jarName, session.description, rate),
       {
         reply_markup: {
           inline_keyboard: [[
-            { text: 'Save', callback_data: 'save' },
+            { text: 'Save ✓', callback_data: 'save' },
+            { text: 'Change jar', callback_data: 'change_jar' },
             { text: 'Cancel', callback_data: 'cancel' },
           ]],
         },
@@ -313,27 +316,30 @@ export async function handleRateInput(ctx: BotContext) {
     return true;
   }
 
-  const { amount = 0, currency = 'PLN', jarHint } = session;
+  const { amount = 0, currency = 'PLN', jarHint, description } = session;
   const amountPln = amount * rate;
   const jars = await getActiveJars();
   const matchedJar = jarHint ? matchJar(jarHint, jars) : undefined;
 
-  ctx.session.expense = {
-    step: 'confirm',
-    amount,
-    currency,
-    rate,
-    jarId: matchedJar?.id ?? null,
-    jarName: matchedJar?.name ?? 'No jar',
-  };
+  if (!matchedJar) {
+    ctx.session.expense = { step: 'pick_jar', amount, currency, rate, description };
+    const keyboard = [
+      ...jars.map((j) => [{ text: j.name, callback_data: `jar:${j.id}:${j.name}` }]),
+      [{ text: 'No jar (save uncategorised)', callback_data: 'jar:null:No jar' }],
+      [{ text: 'Cancel', callback_data: 'cancel' }],
+    ];
+    await ctx.reply(`${fmt(amount)} ${currency} (${fmt(amountPln)} PLN) — which jar?`, { reply_markup: { inline_keyboard: keyboard } });
+    return true;
+  }
 
-  const label = `${fmt(amount)} ${currency} (${fmt(amountPln)} PLN)`;
+  ctx.session.expense = { step: 'confirm', amount, currency, rate, jarId: matchedJar.id, jarName: matchedJar.name, description };
   await ctx.reply(
-    `${label} · ${matchedJar?.name ?? 'No jar'} — save it?`,
+    buildConfirmText(amount, currency, amountPln, matchedJar.name, description, rate),
     {
       reply_markup: {
         inline_keyboard: [[
-          { text: 'Save', callback_data: 'save' },
+          { text: 'Save ✓', callback_data: 'save' },
+          { text: 'Change jar', callback_data: 'change_jar' },
           { text: 'Cancel', callback_data: 'cancel' },
         ]],
       },
@@ -350,7 +356,7 @@ async function saveExpense(ctx: BotContext) {
   const session = ctx.session.expense;
   if (!session) return ctx.editMessageText('Nothing to save.');
 
-  const { amount = 0, currency = 'PLN', jarId, rate } = session;
+  const { amount = 0, currency = 'PLN', jarId, rate, description } = session;
   const amountPln = currency === 'PLN' ? amount : amount * (rate ?? 1);
 
   await prisma.expense.create({
@@ -362,14 +368,16 @@ async function saveExpense(ctx: BotContext) {
       originalCurrency: currency,
       exchangeRate: currency !== 'PLN' ? rate : null,
       isManualRate: currency !== 'PLN' && !!rate,
+      description: description ?? null,
       date: new Date(),
     },
   });
 
   ctx.session.expense = undefined;
 
-  if (jarId === null || jarId === undefined) {
-    return ctx.editMessageText('Saved as uncategorised. Assign a jar on the web app.');
-  }
-  return ctx.editMessageText('Saved ✓');
+  const savedMsg = jarId === null
+    ? `Saved as uncategorised ✓\nDescription: ${description || '—'}\nAssign a jar on the web app.`
+    : `Saved ✓`;
+
+  return ctx.editMessageText(savedMsg);
 }
