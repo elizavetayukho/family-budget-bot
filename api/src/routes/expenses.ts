@@ -39,7 +39,8 @@ router.post('/', requireAuth, async (req, res) => {
 router.patch('/:id', requireAuth, async (req, res) => {
   const expense = await prisma.expense.findUnique({ where: { id: Number(req.params.id) } });
   if (!expense) return res.status(404).json({ error: 'Not found' });
-  if (expense.userId !== req.user!.id) return res.status(403).json({ error: 'Forbidden' });
+  const isAdmin = req.user!.role === 'ADMIN';
+  if (expense.userId !== req.user!.id && !isAdmin) return res.status(403).json({ error: 'Forbidden' });
 
   const {
     amountPln, originalAmount, originalCurrency,
@@ -66,7 +67,8 @@ router.patch('/:id', requireAuth, async (req, res) => {
 router.delete('/:id', requireAuth, async (req, res) => {
   const expense = await prisma.expense.findUnique({ where: { id: Number(req.params.id) } });
   if (!expense) return res.status(404).json({ error: 'Not found' });
-  if (expense.userId !== req.user!.id) return res.status(403).json({ error: 'Forbidden' });
+  const isAdmin = req.user!.role === 'ADMIN';
+  if (expense.userId !== req.user!.id && !isAdmin) return res.status(403).json({ error: 'Forbidden' });
 
   await prisma.expense.delete({ where: { id: expense.id } });
   res.json({ ok: true });

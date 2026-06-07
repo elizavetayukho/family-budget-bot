@@ -86,8 +86,8 @@ export default function AddExpenseModal({ preselectedJarId, editExpense, onClose
       }
       onSaved();
       onClose();
-    } catch {
-      setError("Couldn't save. Try again.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't save. Try again.");
     } finally {
       setBusy(false);
     }
