@@ -110,31 +110,31 @@ export default function Jars() {
   return (
     <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Jars</h1>
+        <h1 className="text-xl font-bold text-brand-900">Jars</h1>
         {isAdmin && (
           <button onClick={() => setAddingJar(!addingJar)}
-            className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-700">
+            className="bg-brand-600 text-white px-3 py-1.5 rounded-xl text-sm font-semibold hover:bg-brand-700">
             + Add jar
           </button>
         )}
       </div>
 
       {addingJar && isAdmin && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex gap-3 items-end">
+        <div className="bg-white rounded-2xl shadow-sm border border-brand-100 p-4 flex gap-3 items-end">
           <div className="flex-1">
             <label className="block text-xs text-gray-500 mb-1">Jar name</label>
             <input value={newJar.name} onChange={(e) => setNewJar((p) => ({ ...p, name: e.target.value }))}
               placeholder="e.g. Clothing" autoFocus
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              className="w-full border border-brand-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
           </div>
           <div className="w-28">
             <label className="block text-xs text-gray-500 mb-1">% of discretionary</label>
             <input type="number" value={newJar.percent} onChange={(e) => setNewJar((p) => ({ ...p, percent: e.target.value }))}
               placeholder="0" min="0" max="100" step="0.5"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              className="w-full border border-brand-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
           </div>
           <button onClick={doAddJar} disabled={busy || !newJar.name.trim()}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+            className="bg-brand-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:opacity-50">
             {busy ? 'Saving…' : 'Save'}
           </button>
           <button onClick={() => { setAddingJar(false); setNewJar({ name: '', percent: '' }); }}
@@ -145,7 +145,7 @@ export default function Jars() {
       )}
 
       <div className="bg-white rounded-2xl shadow-sm border border-brand-100 overflow-hidden">
-        <div className="p-4 border-b bg-gray-50 flex items-center justify-between">
+        <div className="p-4 border-b bg-brand-50/50 flex items-center justify-between">
           <span className={`text-sm font-medium ${totalPercent > 100 ? 'text-red-600' : 'text-gray-700'}`}>
             Total allocated: {totalPercent.toFixed(2)}% of discretionary
           </span>
@@ -174,7 +174,7 @@ export default function Jars() {
                       {isAdmin && !j.isFood && !j.isPersonal ? (
                         <input value={editNames[j.id] ?? j.name}
                           onChange={(e) => setEditNames((p) => ({ ...p, [j.id]: e.target.value }))}
-                          className="border-b border-gray-200 focus:border-blue-500 outline-none w-40 text-sm" />
+                          className="border-b border-brand-100 focus:border-brand-500 outline-none w-40 text-sm" />
                       ) : (
                         <span>{j.name}</span>
                       )}
@@ -185,7 +185,7 @@ export default function Jars() {
                       {isAdmin && !j.isFood && !j.isPersonal ? (
                         <input type="number" value={editPercents[j.id] ?? ''} min="0" max="100" step="0.5"
                           onChange={(e) => setEditPercents((p) => ({ ...p, [j.id]: e.target.value }))}
-                          className="w-16 text-right border-b border-gray-200 focus:border-blue-500 outline-none text-sm" />
+                          className="w-16 text-right border-b border-brand-100 focus:border-brand-500 outline-none text-sm" />
                       ) : (
                         <span>{j.isPersonal ? 'Remainder' : j.isFood ? '—' : `${j.percent}%`}</span>
                       )}
@@ -195,7 +195,7 @@ export default function Jars() {
                         {!j.isPersonal ? (
                           <input type="number" value={editOpeningLiz[j.id] ?? ''} step="0.01" placeholder="0"
                             onChange={(e) => setEditOpeningLiz((p) => ({ ...p, [j.id]: e.target.value }))}
-                            className="w-24 text-right border-b border-gray-200 focus:border-blue-500 outline-none text-sm"
+                            className="w-24 text-right border-b border-brand-100 focus:border-brand-500 outline-none text-sm"
                             title="Lizaveta's carry-forward from before the app" />
                         ) : <span />}
                       </td>
@@ -205,7 +205,7 @@ export default function Jars() {
                         {!j.isPersonal ? (
                           <input type="number" value={editOpeningEdgar[j.id] ?? ''} step="0.01" placeholder="0"
                             onChange={(e) => setEditOpeningEdgar((p) => ({ ...p, [j.id]: e.target.value }))}
-                            className="w-24 text-right border-b border-gray-200 focus:border-blue-500 outline-none text-sm"
+                            className="w-24 text-right border-b border-brand-100 focus:border-brand-500 outline-none text-sm"
                             title="Edgar's carry-forward from before the app" />
                         ) : <span />}
                       </td>
@@ -269,7 +269,7 @@ export default function Jars() {
                 <div className="bg-amber-50 rounded-xl p-3 text-sm text-amber-800">
                   Archiving {j.name}. Balance moves to Personal at next reset.
                   <div className="flex gap-2 mt-2">
-                    <button onClick={() => doArchive(j.id)} className="bg-amber-600 text-white px-3 py-1.5 rounded-lg text-sm min-h-[44px]">Archive</button>
+                    <button onClick={() => doArchive(j.id)} className="bg-amber-600 text-white px-3 py-2 rounded-xl text-sm min-h-[44px]">Archive</button>
                     <button onClick={() => setConfirmArchive(null)} className="text-amber-700 text-sm min-h-[44px] px-2">Cancel</button>
                   </div>
                 </div>
@@ -290,7 +290,7 @@ export default function Jars() {
 
       {/* Archived jars */}
       {archived.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div className="bg-white rounded-2xl shadow-sm border border-brand-100">
           <button onClick={() => setShowArchived(!showArchived)}
             className="w-full flex items-center justify-between p-4 text-sm font-medium text-gray-600">
             <span>Archived jars ({archived.length})</span>
@@ -309,13 +309,13 @@ export default function Jars() {
                       {confirmRestore === j.id ? (
                         <div className="flex gap-2 items-center">
                           <span className="text-xs text-gray-600">Restore {j.name}? Resumes from next reset.</span>
-                          <button onClick={() => doRestore(j.id)} className="text-xs bg-blue-600 text-white px-2 py-1 rounded">Restore jar</button>
+                          <button onClick={() => doRestore(j.id)} className="text-xs bg-brand-600 text-white px-2 py-1 rounded">Restore jar</button>
                           <button onClick={() => setConfirmRestore(null)} className="text-xs text-gray-500">Cancel</button>
                         </div>
                       ) : (
                         <>
                           <button onClick={() => setConfirmRestore(j.id)}
-                            className="text-xs text-blue-600 hover:underline">Restore</button>
+                            className="text-xs text-brand-600 hover:underline">Restore</button>
                           <button onClick={() => doDelete(j.id)}
                             className="text-xs text-red-400 hover:text-red-600">Delete jar</button>
                         </>

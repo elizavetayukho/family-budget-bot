@@ -32,8 +32,8 @@ export default function Onboarding({ onComplete }: { onComplete?: () => void }) 
 
   if (user?.role !== 'ADMIN') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="bg-white rounded-xl shadow p-8 max-w-sm text-center">
+      <div className="min-h-screen flex items-center justify-center bg-brand-50">
+        <div className="bg-white rounded-3xl p-8 max-w-sm text-center">
           <p className="text-gray-600">Setup in progress. You'll get access once Lizaveta completes setup.</p>
         </div>
       </div>
@@ -109,33 +109,41 @@ export default function Onboarding({ onComplete }: { onComplete?: () => void }) 
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="bg-white rounded-xl shadow p-8 w-full max-w-lg">
+    <div className="min-h-screen flex items-center justify-center py-8 px-4"
+      style={{background:'linear-gradient(135deg,#EDE9FE 0%,#F5F3FF 50%,#FCE7F3 100%)'}}>
+      <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-6 sm:p-8 w-full max-w-lg shadow-xl">
+        {/* Logo */}
+        <div className="flex items-center gap-2 mb-6">
+          <div className="w-8 h-8 rounded-xl gradient-card flex items-center justify-center shrink-0">
+            <span className="text-white text-xs font-bold">FB</span>
+          </div>
+          <span className="font-bold text-brand-900">Family Budget</span>
+        </div>
         <div className="mb-6">
-          <p className="text-xs text-gray-400 mb-1">Step {step} of 5</p>
+          <p className="text-xs text-gray-500 font-medium mb-1">Step {step} of 5</p>
           <div className="flex gap-1">
             {[1,2,3,4,5].map((s) => (
-              <div key={s} className={`h-1.5 flex-1 rounded-full ${s <= step ? 'bg-blue-500' : 'bg-gray-200'}`} />
+              <div key={s} className={`h-1.5 flex-1 rounded-full ${s <= step ? 'bg-brand-500' : 'bg-gray-200'}`} />
             ))}
           </div>
         </div>
 
         {step === 1 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Lizaveta's income</h2>
+            <h2 className="text-xl font-bold text-brand-900">Lizaveta's income</h2>
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Brutto (PLN) *</label>
+              <label className="block text-sm text-gray-500 mb-1.5 font-medium">Brutto (PLN) *</label>
               <input type="number" value={lizBrutto} onChange={(e) => setLizBrutto(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="e.g. 8000" />
+                className="w-full bg-brand-50 border border-brand-200 rounded-xl px-4 py-3 text-sm text-brand-900 focus:outline-none focus:ring-2 focus:ring-brand-400" placeholder="e.g. 8000" />
             </div>
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Netto this month (optional)</label>
+              <label className="block text-sm text-gray-500 mb-1.5 font-medium">Netto this month (optional)</label>
               <input type="number" value={lizNetto} onChange={(e) => setLizNetto(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="e.g. 5800" />
+                className="w-full bg-brand-50 border border-brand-200 rounded-xl px-4 py-3 text-sm text-brand-900 focus:outline-none focus:ring-2 focus:ring-brand-400" placeholder="e.g. 5800" />
             </div>
             <div className="flex gap-2 pt-2">
               <button onClick={() => setStep(2)} disabled={!lizBrutto}
-                className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+                className="flex-1 bg-brand-600 text-white py-2 rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:opacity-50">
                 Next
               </button>
             </div>
@@ -144,21 +152,21 @@ export default function Onboarding({ onComplete }: { onComplete?: () => void }) 
 
         {step === 2 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Edgar's income</h2>
+            <h2 className="text-xl font-bold text-brand-900">Edgar's income</h2>
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Brutto (PLN) *</label>
+              <label className="block text-sm text-gray-500 mb-1.5 font-medium">Brutto (PLN) *</label>
               <input type="number" value={edgarBrutto} onChange={(e) => setEdgarBrutto(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="e.g. 7000" />
+                className="w-full bg-brand-50 border border-brand-200 rounded-xl px-4 py-3 text-sm text-brand-900 focus:outline-none focus:ring-2 focus:ring-brand-400" placeholder="e.g. 7000" />
             </div>
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Netto this month (optional)</label>
+              <label className="block text-sm text-gray-500 mb-1.5 font-medium">Netto this month (optional)</label>
               <input type="number" value={edgarNetto} onChange={(e) => setEdgarNetto(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="e.g. 5000" />
+                className="w-full bg-brand-50 border border-brand-200 rounded-xl px-4 py-3 text-sm text-brand-900 focus:outline-none focus:ring-2 focus:ring-brand-400" placeholder="e.g. 5000" />
             </div>
             <div className="flex gap-2 pt-2">
-              <button onClick={() => setStep(1)} className="flex-1 border border-gray-300 py-2 rounded-lg text-sm">Back</button>
+              <button onClick={() => setStep(1)} className="flex-1 border border-brand-200 py-2 rounded-lg text-sm">Back</button>
               <button onClick={() => setStep(3)} disabled={!edgarBrutto}
-                className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+                className="flex-1 bg-brand-600 text-white py-2 rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:opacity-50">
                 Next
               </button>
             </div>
@@ -167,27 +175,27 @@ export default function Onboarding({ onComplete }: { onComplete?: () => void }) 
 
         {step === 3 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Household overheads</h2>
+            <h2 className="text-xl font-bold text-brand-900">Household overheads</h2>
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Food (PLN/month) *</label>
+              <label className="block text-sm text-gray-500 mb-1.5 font-medium">Food (PLN/month) *</label>
               <input type="number" value={foodAmount} onChange={(e) => setFoodAmount(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                className="w-full bg-brand-50 border border-brand-200 rounded-xl px-4 py-3 text-sm text-brand-900 focus:outline-none focus:ring-2 focus:ring-brand-400" />
             </div>
             {extraOverheads.map((o, i) => (
               <div key={i} className="flex gap-2">
                 <input value={o.name} onChange={(e) => setExtraOverheads((prev) => prev.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
-                  placeholder="Name" className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                  placeholder="Name" className="flex-1 bg-brand-50 border border-brand-200 rounded-xl px-4 py-3 text-sm text-brand-900 focus:outline-none focus:ring-2 focus:ring-brand-400" />
                 <input type="number" value={o.amount} onChange={(e) => setExtraOverheads((prev) => prev.map((x, j) => j === i ? { ...x, amount: e.target.value } : x))}
-                  placeholder="PLN" className="w-28 border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                  placeholder="PLN" className="w-28 border border-brand-200 rounded-xl px-3 py-2.5 text-sm" />
                 <button onClick={() => setExtraOverheads((prev) => prev.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 px-2">✕</button>
               </div>
             ))}
             <button onClick={() => setExtraOverheads((p) => [...p, { name: '', amount: '' }])}
-              className="text-blue-600 text-sm hover:underline">+ Add overhead</button>
+              className="text-brand-600 text-sm hover:underline">+ Add overhead</button>
             <div className="flex gap-2 pt-2">
-              <button onClick={() => setStep(2)} className="flex-1 border border-gray-300 py-2 rounded-lg text-sm">Back</button>
+              <button onClick={() => setStep(2)} className="flex-1 border border-brand-200 py-2 rounded-lg text-sm">Back</button>
               <button onClick={() => setStep(4)} disabled={!foodAmount}
-                className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+                className="flex-1 bg-brand-600 text-white py-2 rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:opacity-50">
                 Next
               </button>
             </div>
@@ -196,23 +204,23 @@ export default function Onboarding({ onComplete }: { onComplete?: () => void }) 
 
         {step === 4 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Lizaveta's personal deductions</h2>
+            <h2 className="text-xl font-bold text-brand-900">Lizaveta's personal deductions</h2>
             <p className="text-sm text-gray-500">These reduce Lizaveta's discretionary income before jar allocations.</p>
             {deductions.map((d, i) => (
               <div key={i} className="flex gap-2">
                 <input value={d.name} onChange={(e) => setDeductions((prev) => prev.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
-                  placeholder="Name" className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                  placeholder="Name" className="flex-1 bg-brand-50 border border-brand-200 rounded-xl px-4 py-3 text-sm text-brand-900 focus:outline-none focus:ring-2 focus:ring-brand-400" />
                 <input type="number" value={d.amount} onChange={(e) => setDeductions((prev) => prev.map((x, j) => j === i ? { ...x, amount: e.target.value } : x))}
-                  placeholder="PLN" className="w-28 border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                  placeholder="PLN" className="w-28 border border-brand-200 rounded-xl px-3 py-2.5 text-sm" />
                 <button onClick={() => setDeductions((prev) => prev.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 px-2">✕</button>
               </div>
             ))}
             <button onClick={() => setDeductions((p) => [...p, { name: '', amount: '' }])}
-              className="text-blue-600 text-sm hover:underline">+ Add deduction</button>
+              className="text-brand-600 text-sm hover:underline">+ Add deduction</button>
             <div className="flex gap-2 pt-2">
-              <button onClick={() => setStep(3)} className="flex-1 border border-gray-300 py-2 rounded-lg text-sm">Back</button>
+              <button onClick={() => setStep(3)} className="flex-1 border border-brand-200 py-2 rounded-lg text-sm">Back</button>
               <button onClick={async () => { await loadJars(); setStep(5); }}
-                className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
+                className="flex-1 bg-brand-600 text-white py-2 rounded-xl text-sm font-semibold hover:bg-brand-700">
                 Next
               </button>
             </div>
@@ -221,7 +229,7 @@ export default function Onboarding({ onComplete }: { onComplete?: () => void }) 
 
         {step === 5 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Jar allocations</h2>
+            <h2 className="text-xl font-bold text-brand-900">Jar allocations</h2>
             <p className="text-sm text-gray-500">Set the % of each person's discretionary income that goes into each shared jar.</p>
             {jars.map((j, i) => (
               <div key={j.id} className="space-y-1">
@@ -230,7 +238,7 @@ export default function Onboarding({ onComplete }: { onComplete?: () => void }) 
                   <div className="flex items-center gap-1">
                     <input type="number" value={j.percent} min="0" max="100" step="0.5"
                       onChange={(e) => setJars((prev) => prev.map((x, k) => k === i ? { ...x, percent: e.target.value } : x))}
-                      className="w-20 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-right" />
+                      className="w-20 border border-brand-200 rounded-xl px-3 py-2 text-sm text-right" />
                     <span className="text-sm text-gray-500">%</span>
                   </div>
                 </div>
@@ -239,14 +247,14 @@ export default function Onboarding({ onComplete }: { onComplete?: () => void }) 
                   <span className="text-xs text-gray-500 w-20">Lizaveta</span>
                   <input type="number" value={j.openingBalanceLiz} step="0.01" placeholder="0"
                     onChange={(e) => setJars((prev) => prev.map((x, k) => k === i ? { ...x, openingBalanceLiz: e.target.value } : x))}
-                    className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-sm text-right" />
+                    className="w-24 border border-brand-100 rounded-lg px-2 py-1 text-sm text-right" />
                   <span className="text-xs text-gray-400">PLN</span>
                 </div>
                 <div className="flex items-center gap-2 pl-1">
                   <span className="text-xs text-gray-500 w-20">Edgar</span>
                   <input type="number" value={j.openingBalanceEdgar} step="0.01" placeholder="0"
                     onChange={(e) => setJars((prev) => prev.map((x, k) => k === i ? { ...x, openingBalanceEdgar: e.target.value } : x))}
-                    className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-sm text-right" />
+                    className="w-24 border border-brand-100 rounded-lg px-2 py-1 text-sm text-right" />
                   <span className="text-xs text-gray-400">PLN</span>
                 </div>
               </div>
@@ -256,9 +264,9 @@ export default function Onboarding({ onComplete }: { onComplete?: () => void }) 
               {totalPercent > 100 && <span className="block text-red-600">Total exceeds 100% — your Personal jar would be negative.</span>}
             </div>
             <div className="flex gap-2 pt-2">
-              <button onClick={() => setStep(4)} className="flex-1 border border-gray-300 py-2 rounded-lg text-sm">Back</button>
+              <button onClick={() => setStep(4)} className="flex-1 border border-brand-200 py-2 rounded-lg text-sm">Back</button>
               <button onClick={handleFinish} disabled={busy || totalPercent > 100}
-                className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+                className="flex-1 bg-brand-600 text-white py-2 rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:opacity-50">
                 {busy ? 'Saving…' : 'Go to Dashboard'}
               </button>
             </div>

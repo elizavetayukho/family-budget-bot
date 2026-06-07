@@ -74,7 +74,7 @@ export default function History() {
           <label className="block text-xs text-gray-500 mb-1">Jar</label>
           <select value={showUncategorised ? '__uncategorised' : jarFilter[0] ?? ''}
             onChange={(e) => { if (e.target.value === '__uncategorised') { setShowUncategorised(true); setJarFilter([]); } else { setShowUncategorised(false); setJarFilter(e.target.value ? [e.target.value] : []); } }}
-            className="border border-gray-300 rounded-xl px-3 py-2 text-sm min-h-[44px]">
+            className="border border-brand-200 rounded-xl px-3 py-2 text-sm min-h-[44px]">
             <option value="">All jars</option>
             <option value="__uncategorised">Uncategorised</option>
             {jars.map((j) => <option key={j.id} value={j.id}>{j.name}</option>)}
@@ -83,17 +83,17 @@ export default function History() {
         <div>
           <label className="block text-xs text-gray-500 mb-1">From</label>
           <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-            className="border border-gray-300 rounded-xl px-3 py-2 text-sm min-h-[44px]" />
+            className="border border-brand-200 rounded-xl px-3 py-2 text-sm min-h-[44px]" />
         </div>
         <div>
           <label className="block text-xs text-gray-500 mb-1">To</label>
           <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-            className="border border-gray-300 rounded-xl px-3 py-2 text-sm min-h-[44px]" />
+            className="border border-brand-200 rounded-xl px-3 py-2 text-sm min-h-[44px]" />
         </div>
         <div>
           <label className="block text-xs text-gray-500 mb-1">Sort</label>
           <select value={sort} onChange={(e) => setSort(e.target.value)}
-            className="border border-gray-300 rounded-xl px-3 py-2 text-sm min-h-[44px]">
+            className="border border-brand-200 rounded-xl px-3 py-2 text-sm min-h-[44px]">
             <option value="date_desc">Date newest</option>
             <option value="date_asc">Date oldest</option>
             <option value="amount_desc">Amount high–low</option>
@@ -106,17 +106,17 @@ export default function History() {
           <div>
             <label className="block text-xs text-gray-500 mb-1">Min PLN</label>
             <input type="number" value={minAmount} onChange={(e) => setMinAmount(e.target.value)}
-              className="border border-gray-300 rounded-xl px-3 py-2 text-sm w-28 min-h-[44px]" placeholder="0.00" />
+              className="border border-brand-200 rounded-xl px-3 py-2 text-sm w-28 min-h-[44px]" placeholder="0.00" />
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Max PLN</label>
             <input type="number" value={maxAmount} onChange={(e) => setMaxAmount(e.target.value)}
-              className="border border-gray-300 rounded-xl px-3 py-2 text-sm w-28 min-h-[44px]" placeholder="9999" />
+              className="border border-brand-200 rounded-xl px-3 py-2 text-sm w-28 min-h-[44px]" placeholder="9999" />
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Currency</label>
             <select value={currencyFilter} onChange={(e) => setCurrencyFilter(e.target.value)}
-              className="border border-gray-300 rounded-xl px-3 py-2 text-sm min-h-[44px]">
+              className="border border-brand-200 rounded-xl px-3 py-2 text-sm min-h-[44px]">
               <option value="">All</option>
               {['PLN','USD','EUR','BYN'].map((c) => <option key={c}>{c}</option>)}
             </select>
@@ -142,7 +142,7 @@ export default function History() {
       </div>
 
       {/* Desktop filter bar */}
-      <div className="hidden sm:block bg-white rounded-2xl shadow-sm border border-brand-100 p-4">
+      <div className="hidden sm:block bg-white rounded-2xl border border-brand-100 p-4">
         <FilterContent />
       </div>
 
@@ -164,7 +164,7 @@ export default function History() {
       )}
 
       {/* Expense list */}
-      <div className="bg-white rounded-2xl shadow-sm border border-brand-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-brand-100 overflow-hidden">
         {loading && <div className="p-8 text-center text-gray-500">Loading…</div>}
         {!loading && expenses.length === 0 && (
           <div className="p-8 text-center text-gray-500">No expenses found.</div>

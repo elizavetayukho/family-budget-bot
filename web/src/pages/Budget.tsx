@@ -159,8 +159,8 @@ export default function Budget() {
             const history = incomes.filter((i) => i.userId === u.id);
 
             return (
-              <div key={u.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-3">
-                <p className="font-medium">{u.name}</p>
+              <div key={u.id} className="bg-white rounded-2xl shadow-sm border border-brand-100 p-4 space-y-3">
+                <p className="font-semibold text-brand-900">{u.name}</p>
 
                 <div>
                   <div className="flex items-center justify-between">
@@ -169,7 +169,7 @@ export default function Budget() {
                       <span className="text-sm font-medium">{income ? fmtPln(Number(income.brutto)) : '—'}</span>
                       {isAdmin && (
                         <button onClick={() => setEditBrutto((p) => ({ ...p, [u.id]: { open: !p[u.id]?.open, value: '', reason: '' } }))}
-                          className="text-xs text-blue-600 hover:underline">Edit</button>
+                          className="text-xs text-brand-600 hover:underline">Edit</button>
                       )}
                     </div>
                   </div>
@@ -177,14 +177,14 @@ export default function Budget() {
                     <div className="mt-2 space-y-2">
                       <input type="number" value={bruttoEdit.value}
                         onChange={(e) => setEditBrutto((p) => ({ ...p, [u.id]: { ...p[u.id], value: e.target.value } }))}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm" placeholder="New brutto" />
+                        className="w-full bg-brand-50 border border-brand-200 rounded-xl px-3 py-2.5 text-sm text-brand-900 focus:outline-none focus:ring-2 focus:ring-brand-400" placeholder="New brutto" />
                       <input value={bruttoEdit.reason}
                         onChange={(e) => setEditBrutto((p) => ({ ...p, [u.id]: { ...p[u.id], reason: e.target.value } }))}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm" placeholder="Reason (optional)" />
+                        className="w-full bg-brand-50 border border-brand-200 rounded-xl px-3 py-2.5 text-sm text-brand-900 focus:outline-none focus:ring-2 focus:ring-brand-400" placeholder="Reason (optional)" />
                       <div className="text-xs text-gray-400">Effective from {fmtMonth(nextMonth())} (1st)</div>
                       <div className="flex gap-2">
                         <button onClick={() => saveBrutto(u.id)} disabled={busy}
-                          className="flex-1 bg-blue-600 text-white py-1.5 rounded text-sm disabled:opacity-50">Save</button>
+                          className="flex-1 bg-brand-600 text-white py-1.5 rounded text-sm disabled:opacity-50">Save</button>
                         <button onClick={() => setEditBrutto((p) => ({ ...p, [u.id]: { ...p[u.id], open: false } }))}
                           className="text-sm text-gray-500">Cancel</button>
                       </div>
@@ -203,9 +203,9 @@ export default function Budget() {
                     <div className="flex items-center gap-2 mt-1">
                       <input type="number" value={nettoInputs[u.id] ?? ''}
                         onChange={(e) => setNettoInputs((p) => ({ ...p, [u.id]: e.target.value }))}
-                        className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm" placeholder="Enter netto" />
+                        className="flex-1 bg-brand-50 border border-brand-200 rounded-xl px-3 py-2.5 text-sm text-brand-900 focus:outline-none focus:ring-2 focus:ring-brand-400" placeholder="Enter netto" />
                       <button onClick={() => saveNetto(u.id)} disabled={busy}
-                        className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm disabled:opacity-50">Save</button>
+                        className="bg-brand-600 text-white px-3 py-2 rounded-xl text-sm disabled:opacity-50">Save</button>
                     </div>
                   )}
                 </div>
@@ -213,7 +213,7 @@ export default function Budget() {
                 {history.length > 0 && (
                   <div>
                     <button onClick={() => setShowHistory((p) => ({ ...p, [u.id]: !p[u.id] }))}
-                      className="text-xs text-blue-600 hover:underline">
+                      className="text-xs text-brand-600 hover:underline">
                       {showHistory[u.id] ? 'Hide history' : 'View brutto history'}
                     </button>
                     {showHistory[u.id] && (
@@ -242,7 +242,7 @@ export default function Budget() {
         </button>
         {openSections.overheads && <div className="bg-white rounded-2xl shadow-sm border border-brand-100 overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="text-xs text-gray-500 border-b bg-gray-50">
+            <thead className="text-xs font-semibold text-gray-500 border-b bg-brand-50">
               <tr>
                 <th className="text-left px-4 py-2">Name</th>
                 <th className="text-right px-4 py-2">Monthly</th>
@@ -258,7 +258,7 @@ export default function Budget() {
                     <td className="px-4 py-2">
                       {isAdmin && editing ? (
                         <input value={editing.name} onChange={(e) => setEditOverhead((p) => ({ ...p, [o.id]: { ...editing, name: e.target.value } }))}
-                          className="border-b border-gray-300 focus:border-blue-500 outline-none text-sm w-40" />
+                          className="border-b border-brand-200 focus:border-brand-500 outline-none text-sm w-40" />
                       ) : (
                         <span>{o.name}{o.isOneOff && <span className="ml-2 text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">One-off</span>}</span>
                       )}
@@ -266,7 +266,7 @@ export default function Budget() {
                     <td className="px-4 py-2 text-right">
                       {isAdmin && editing ? (
                         <input type="number" value={editing.amount} onChange={(e) => setEditOverhead((p) => ({ ...p, [o.id]: { ...editing, amount: e.target.value } }))}
-                          className="border-b border-gray-300 focus:border-blue-500 outline-none text-sm w-24 text-right" />
+                          className="border-b border-brand-200 focus:border-brand-500 outline-none text-sm w-24 text-right" />
                       ) : fmtPln(Number(o.amountPln))}
                     </td>
                     <td className="px-4 py-2 text-right">
@@ -276,12 +276,12 @@ export default function Budget() {
                       <td className="px-4 py-2 text-right whitespace-nowrap">
                         {editing ? (
                           <>
-                            <button onClick={() => saveOverhead(o.id)} className="text-xs text-blue-600 hover:underline mr-2">Save</button>
+                            <button onClick={() => saveOverhead(o.id)} className="text-xs text-brand-600 hover:underline mr-2">Save</button>
                             <button onClick={() => setEditOverhead((p) => { const n = { ...p }; delete n[o.id]; return n; })} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
                           </>
                         ) : (
                           <>
-                            <button onClick={() => setEditOverhead((p) => ({ ...p, [o.id]: { name: o.name, amount: String(o.amountPln) } }))} className="text-xs text-blue-500 hover:underline mr-2">Edit</button>
+                            <button onClick={() => setEditOverhead((p) => ({ ...p, [o.id]: { name: o.name, amount: String(o.amountPln) } }))} className="text-xs text-brand-500 hover:underline mr-2">Edit</button>
                             <button onClick={() => deleteOverhead(o.id)} className="text-xs text-red-400 hover:text-red-600">Delete</button>
                           </>
                         )}
@@ -290,7 +290,7 @@ export default function Budget() {
                   </tr>
                 );
               })}
-              <tr className="border-t bg-gray-50 font-medium">
+              <tr className="border-t bg-brand-50 font-medium">
                 <td className="px-4 py-2">Total</td>
                 <td className="px-4 py-2 text-right">{fmtPln(totalOverheads)}</td>
                 <td className="px-4 py-2 text-right">{fmtPln(totalOverheads / 2)}</td>
@@ -301,10 +301,10 @@ export default function Budget() {
           {isAdmin && (
             <div className="p-4 border-t flex gap-2">
               <input value={newOverhead.name} onChange={(e) => setNewOverhead((p) => ({ ...p, name: e.target.value }))}
-                placeholder="Overhead name" className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                placeholder="Overhead name" className="flex-1 border border-brand-200 rounded-xl px-3 py-2.5 text-sm" />
               <input type="number" value={newOverhead.amount} onChange={(e) => setNewOverhead((p) => ({ ...p, amount: e.target.value }))}
-                placeholder="PLN" className="w-28 border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-              <button onClick={addOverhead} className="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-blue-700">+ Add</button>
+                placeholder="PLN" className="w-28 border border-brand-200 rounded-xl px-3 py-2.5 text-sm" />
+              <button onClick={addOverhead} className="bg-brand-600 text-white px-3 py-2.5 rounded-xl text-sm hover:bg-brand-700">+ Add</button>
             </div>
           )}
         </div>}
@@ -324,9 +324,9 @@ export default function Budget() {
             const nd = newDeduction[u.id] ?? { name: '', amount: '' };
 
             return (
-              <div key={u.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="px-4 py-3 border-b bg-gray-50">
-                  <p className="text-sm font-medium">{u.name}</p>
+              <div key={u.id} className="bg-white rounded-2xl shadow-sm border border-brand-100 overflow-hidden">
+                <div className="px-4 py-3 border-b bg-brand-50">
+                  <p className="text-sm font-semibold text-brand-900">{u.name}</p>
                 </div>
                 <table className="w-full text-sm">
                   <tbody>
@@ -340,25 +340,25 @@ export default function Budget() {
                           <td className="px-4 py-2">
                             {canEdit && ded ? (
                               <input value={ded.name} onChange={(e) => setEditDeduction((p) => ({ ...p, [d.id]: { ...ded, name: e.target.value } }))}
-                                className="border-b border-gray-300 focus:border-blue-500 outline-none text-sm w-32" />
+                                className="border-b border-brand-200 focus:border-brand-500 outline-none text-sm w-32" />
                             ) : d.name}
                           </td>
                           <td className="px-4 py-2 text-right">
                             <div className="flex items-center justify-end gap-2">
                               {canEdit && ded ? (
                                 <input type="number" value={ded.amount} onChange={(e) => setEditDeduction((p) => ({ ...p, [d.id]: { ...ded, amount: e.target.value } }))}
-                                  className="border-b border-gray-300 focus:border-blue-500 outline-none text-sm w-20 text-right" />
+                                  className="border-b border-brand-200 focus:border-brand-500 outline-none text-sm w-20 text-right" />
                               ) : (
                                 <span>{fmtPln(Number(d.amountPln))}</span>
                               )}
                               {canEdit && (ded ? (
                                 <>
-                                  <button onClick={() => saveDeduction(d.id)} className="text-xs text-blue-600 hover:underline">Save</button>
+                                  <button onClick={() => saveDeduction(d.id)} className="text-xs text-brand-600 hover:underline">Save</button>
                                   <button onClick={() => setEditDeduction((p) => { const n = { ...p }; delete n[d.id]; return n; })} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
                                 </>
                               ) : (
                                 <>
-                                  <button onClick={() => setEditDeduction((p) => ({ ...p, [d.id]: { name: d.name, amount: String(d.amountPln) } }))} className="text-xs text-blue-500 hover:underline">Edit</button>
+                                  <button onClick={() => setEditDeduction((p) => ({ ...p, [d.id]: { name: d.name, amount: String(d.amountPln) } }))} className="text-xs text-brand-500 hover:underline">Edit</button>
                                   <button onClick={() => deleteDeduction(d.id)} className="text-xs text-red-400 hover:text-red-600">Delete</button>
                                 </>
                               ))}
@@ -373,12 +373,12 @@ export default function Budget() {
                   <div className="p-3 border-t flex gap-2">
                     <input value={nd.name}
                       onChange={(e) => setNewDeduction((p) => ({ ...p, [u.id]: { ...nd, name: e.target.value } }))}
-                      placeholder="Name" className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm" />
+                      placeholder="Name" className="flex-1 bg-brand-50 border border-brand-200 rounded-xl px-3 py-2.5 text-sm text-brand-900 focus:outline-none focus:ring-2 focus:ring-brand-400" />
                     <input type="number" value={nd.amount}
                       onChange={(e) => setNewDeduction((p) => ({ ...p, [u.id]: { ...nd, amount: e.target.value } }))}
-                      placeholder="PLN" className="w-20 border border-gray-300 rounded-lg px-3 py-1.5 text-sm" />
+                      placeholder="PLN" className="w-20 bg-brand-50 border border-brand-200 rounded-xl px-3 py-2.5 text-sm text-brand-900 focus:outline-none focus:ring-2 focus:ring-brand-400" />
                     <button onClick={() => addDeduction(u.id)}
-                      className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-blue-700">+ Add</button>
+                      className="bg-brand-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-700 min-h-[44px] transition-colors">+ Add</button>
                   </div>
                 )}
               </div>

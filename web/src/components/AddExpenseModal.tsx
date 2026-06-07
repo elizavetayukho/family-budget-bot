@@ -128,17 +128,17 @@ export default function AddExpenseModal({ preselectedJarId, editExpense, onClose
         <div className="space-y-4">
           {isAdmin && !editExpense && users.length > 0 && (
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Log as</label>
+              <label className="block text-sm text-gray-500 font-medium mb-1.5">Log as</label>
               <div className="flex gap-2">
                 {users.map((u) => (
                   <button
                     key={u.id}
                     type="button"
                     onClick={() => setLogAsUserId(logAsUserId === u.id ? null : u.id)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                    className={`px-3 py-2 rounded-xl text-sm font-medium border transition-colors ${
                       logAsUserId === u.id
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+                        ? 'bg-brand-600 text-white border-blue-600'
+                        : 'bg-white text-gray-600 border-brand-200 hover:border-brand-400'
                     }`}
                   >
                     {u.name}
@@ -146,7 +146,7 @@ export default function AddExpenseModal({ preselectedJarId, editExpense, onClose
                 ))}
               </div>
               {logAsUserId && (
-                <p className="text-xs text-blue-600 mt-1">
+                <p className="text-xs text-brand-600 mt-1">
                   Logging as {users.find(u => u.id === logAsUserId)?.name}
                 </p>
               )}
@@ -154,14 +154,14 @@ export default function AddExpenseModal({ preselectedJarId, editExpense, onClose
           )}
           <div className="flex gap-2">
             <div className="flex-1">
-              <label className="block text-sm text-gray-600 mb-1">Amount *</label>
+              <label className="block text-sm text-gray-500 font-medium mb-1.5">Amount *</label>
               <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} min="0" step="0.01"
-                className="w-full border border-gray-300 rounded-lg px-3 py-3 text-base sm:text-sm" placeholder="0.00" inputMode="decimal" />
+                className="w-full border border-brand-200 rounded-lg px-3 py-3 text-base sm:text-sm" placeholder="0.00" inputMode="decimal" />
             </div>
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Currency</label>
+              <label className="block text-sm text-gray-500 font-medium mb-1.5">Currency</label>
               <select value={currency} onChange={(e) => setCurrency(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                className="border border-brand-200 rounded-xl px-3 py-2.5 text-sm">
                 {CURRENCIES.map((c) => <option key={c}>{c}</option>)}
               </select>
             </div>
@@ -169,35 +169,35 @@ export default function AddExpenseModal({ preselectedJarId, editExpense, onClose
 
           {rateNeeded && (
             <div>
-              <p className="text-sm text-amber-700 mb-1">{rateError}</p>
+              <p className="text-sm font-medium text-amber-700 mb-1.5">{rateError}</p>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">1 {currency} =</span>
                 <input type="number" value={manualRate} onChange={(e) => setManualRate(e.target.value)}
-                  className="w-28 border border-gray-300 rounded-lg px-3 py-3 text-base sm:text-sm" placeholder="0.00" inputMode="decimal" />
+                  className="w-28 border border-brand-200 rounded-lg px-3 py-3 text-base sm:text-sm" placeholder="0.00" inputMode="decimal" />
                 <span className="text-sm text-gray-600">PLN</span>
               </div>
             </div>
           )}
 
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Jar (optional)</label>
+            <label className="block text-sm text-gray-500 font-medium mb-1.5">Jar (optional)</label>
             <select value={jarId ?? ''} onChange={(e) => setJarId(e.target.value ? Number(e.target.value) : null)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+              className="w-full border border-brand-200 rounded-xl px-3 py-2.5 text-sm">
               <option value="">No jar</option>
               {jars.map((j) => <option key={j.id} value={j.id}>{j.name}</option>)}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Description (optional)</label>
+            <label className="block text-sm text-gray-500 font-medium mb-1.5">Description (optional)</label>
             <input value={description} onChange={(e) => setDescription(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="What was this for?" />
+              className="w-full border border-brand-200 rounded-xl px-3 py-2.5 text-sm" placeholder="What was this for?" />
           </div>
 
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Date</label>
+            <label className="block text-sm text-gray-500 font-medium mb-1.5">Date</label>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              className="w-full border border-brand-200 rounded-xl px-3 py-2.5 text-sm" />
           </div>
 
           {noJarWarning && !jarId && (
@@ -216,9 +216,9 @@ export default function AddExpenseModal({ preselectedJarId, editExpense, onClose
 
           {!noJarWarning && (
             <div className="flex gap-2 pt-1">
-              <button onClick={onClose} className="flex-1 border border-gray-300 py-2 rounded-lg text-sm">Cancel</button>
+              <button onClick={onClose} className="flex-1 border border-brand-200 py-2 rounded-lg text-sm">Cancel</button>
               <button onClick={handleSave} disabled={busy}
-                className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+                className="flex-1 bg-brand-600 text-white py-2 rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:opacity-50">
                 {busy ? 'Saving…' : 'Save'}
               </button>
             </div>

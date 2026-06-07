@@ -78,7 +78,7 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
             {jar.balance < 0 && (
               <p className="text-xs text-red-500 mt-0.5">{fmtPln(Math.abs(jar.balance))} over — carried to next month</p>
             )}
-            <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className="mt-2 h-1.5 bg-brand-100 rounded-full overflow-hidden">
               <div className={`h-1.5 rounded-full ${jar.balance < 0 ? 'bg-red-400' : 'bg-blue-400'}`}
                 style={{ width: `${Math.min(100, jar.totalContribution > 0 ? (jar.totalSpending / jar.totalContribution) * 100 : 0)}%` }} />
             </div>
@@ -117,7 +117,7 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
           {expenses.length === 0 && <p className="text-sm text-gray-500">No expenses this month.</p>}
           {expenses.map((e) => (
             <button key={e.id} onClick={() => setEditingExpense(e)}
-              className="w-full text-left flex items-center justify-between p-2 rounded hover:bg-gray-50 gap-2">
+              className="w-full text-left flex items-center justify-between p-2 rounded hover:bg-brand-50 gap-2">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{e.description || '—'}</p>
                 <p className="text-xs text-gray-500">{new Date(e.date).toLocaleDateString('en-GB')} · {e.user.name}</p>
@@ -131,21 +131,21 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
 
         <div className="p-4 border-t space-y-2">
           <button onClick={() => setAddingExpense(true)}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
+            className="w-full bg-brand-600 text-white py-2 rounded-xl text-sm font-semibold hover:bg-brand-700">
             + Add Expense
           </button>
           {user?.role === 'ADMIN' && !confirmArchive && (
             <button onClick={() => setConfirmArchive(true)}
-              className="w-full border border-gray-300 text-gray-600 py-2 rounded-lg text-sm hover:bg-gray-50">
+              className="w-full bg-brand-50 border border-brand-200 text-brand-700 py-3 rounded-xl font-semibold text-sm hover:bg-brand-50">
               Archive jar
             </button>
           )}
           {confirmArchive && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-sm text-amber-800">
               Archiving {jar.name}. Remaining balance of {fmtPln(jar.balance)} will move to your Personal jar at next reset. Past transactions stay in history.
               <div className="flex gap-2 mt-2">
                 <button onClick={handleArchive} disabled={busy}
-                  className="bg-amber-600 text-white px-3 py-1 rounded text-sm disabled:opacity-50">Archive jar</button>
+                  className="bg-amber-600 text-white px-3 py-2 rounded-xl text-sm font-semibold disabled:opacity-50">Archive jar</button>
                 <button onClick={() => setConfirmArchive(false)} className="text-amber-700 text-sm hover:underline">Cancel</button>
               </div>
             </div>

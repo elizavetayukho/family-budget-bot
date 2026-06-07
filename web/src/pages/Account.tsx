@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 
@@ -30,47 +31,66 @@ export default function Account() {
     }
   };
 
+  const Card = ({ children }: { children: React.ReactNode }) => (
+    <div className="bg-white rounded-2xl border border-brand-100 p-5 space-y-3"
+      style={{boxShadow:'0 2px 16px 0 rgba(124,58,237,0.07)'}}>
+      {children}
+    </div>
+  );
+
+  const SectionTitle = ({ children }: { children: React.ReactNode }) => (
+    <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{children}</h2>
+  );
+
   return (
-    <div className="max-w-xl mx-auto p-6 space-y-6">
-      <h1 className="text-xl font-semibold">Account</h1>
+    <div className="max-w-xl mx-auto p-4 sm:p-6 space-y-4">
+      <h1 className="text-xl font-bold text-brand-900">Account</h1>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-3">
-        <h2 className="text-base font-medium">Profile</h2>
-        <div className="text-sm text-gray-600">
-          <div className="flex justify-between py-1 border-b"><span>Name</span><span className="font-medium">{user?.name}</span></div>
-          <div className="flex justify-between py-1"><span>Email</span><span className="font-medium">{user?.email}</span></div>
+      <Card>
+        <SectionTitle>Profile</SectionTitle>
+        <div className="text-sm">
+          <div className="flex justify-between py-2.5 border-b border-brand-50">
+            <span className="text-gray-500">Name</span>
+            <span className="font-semibold text-brand-900">{user?.name}</span>
+          </div>
+          <div className="flex justify-between py-2.5">
+            <span className="text-gray-500">Email</span>
+            <span className="font-semibold text-brand-900">{user?.email}</span>
+          </div>
         </div>
-      </div>
+      </Card>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-3">
-        <h2 className="text-base font-medium">Telegram account link</h2>
-        <p className="text-sm text-gray-500">Generate a 6-digit code and send it to the Family Budget Telegram bot.</p>
+      <Card>
+        <SectionTitle>Telegram</SectionTitle>
+        <p className="text-sm text-gray-600">Generate a 6-digit code and send it to the Family Budget bot to link your account.</p>
         {linkCode ? (
-          <div className="flex items-center gap-3">
-            <span className="text-3xl font-mono font-bold tracking-widest text-blue-600">{linkCode}</span>
-            <button onClick={generateCode} className="text-sm text-gray-500 hover:underline">Regenerate</button>
+          <div className="flex items-center gap-4">
+            <span className="text-4xl font-mono font-bold tracking-widest text-brand-700">{linkCode}</span>
+            <button onClick={generateCode} className="text-sm text-gray-500 hover:text-brand-700 underline min-h-[44px]">
+              Regenerate
+            </button>
           </div>
         ) : (
           <button onClick={generateCode} disabled={generating}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+            className="bg-brand-600 text-white px-4 py-3 rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:opacity-50 min-h-[44px] transition-colors">
             {generating ? 'Generating…' : 'Generate code'}
           </button>
         )}
-      </div>
+      </Card>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-3">
-        <h2 className="text-base font-medium">Password reset</h2>
+      <Card>
+        <SectionTitle>Password</SectionTitle>
         {!resetSent ? (
-          <form onSubmit={sendReset} className="flex gap-2">
+          <form onSubmit={sendReset}>
             <button type="submit" disabled={resetting}
-              className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 disabled:opacity-50">
-              {resetting ? 'Sending…' : 'Send reset email'}
+              className="bg-brand-50 text-brand-700 border border-brand-200 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-brand-100 disabled:opacity-50 min-h-[44px] transition-colors">
+              {resetting ? 'Sending…' : 'Send password reset email'}
             </button>
           </form>
         ) : (
-          <p className="text-sm text-green-600">Check your email for a reset link.</p>
+          <p className="text-sm text-green-600 font-medium">Check your email for a reset link.</p>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
