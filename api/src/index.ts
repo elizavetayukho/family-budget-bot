@@ -17,6 +17,7 @@ import rateRoutes from './routes/rates';
 import accountRoutes from './routes/account';
 import historyRoutes from './routes/history';
 import adminRoutes from './routes/admin';
+import analyticsRoutes from './routes/analytics';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -39,6 +40,7 @@ app.use('/api/rates', rateRoutes);
 app.use('/api/account', accountRoutes);
 app.use('/api/history', historyRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // In production, serve the built React frontend
 if (process.env.NODE_ENV === 'production') {

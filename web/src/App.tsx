@@ -13,6 +13,7 @@ import Jars from './pages/Jars';
 import Budget from './pages/Budget';
 import History from './pages/History';
 import Account from './pages/Account';
+import Analytics from './pages/Analytics';
 
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -55,6 +56,7 @@ function AppRoutes() {
                 <Route path="/budget" element={<Budget />} />
                 <Route path="/history" element={<History />} />
                 <Route path="/account" element={<Account />} />
+                <Route path="/analytics" element={<Analytics />} />
               </Routes>
             </main>
           </div>

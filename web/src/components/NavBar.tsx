@@ -1,6 +1,10 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+const desktopOnlyLinks = [
+  { to: '/analytics', label: 'Analytics' },
+];
+
 const tabs = [
   {
     to: '/', label: 'Dashboard', end: true,
@@ -66,6 +70,16 @@ export default function NavBar() {
           </div>
           {tabs.map((l) => (
             <NavLink key={l.to} to={l.to} end={l.end}
+              className={({ isActive }) =>
+                `px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
+                  isActive ? 'bg-brand-100 text-brand-800' : 'text-gray-500 hover:text-brand-700 hover:bg-brand-50'
+                }`
+              }>
+              {l.label}
+            </NavLink>
+          ))}
+          {desktopOnlyLinks.map((l) => (
+            <NavLink key={l.to} to={l.to}
               className={({ isActive }) =>
                 `px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
                   isActive ? 'bg-brand-100 text-brand-800' : 'text-gray-500 hover:text-brand-700 hover:bg-brand-50'
