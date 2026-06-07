@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                     Int      @id @default(autoincrement())
+  name                   String
+  email                  String   @unique
+  passwordHash           String
+  role                   String   @default("USER")
+  telegramId             String?  @unique
+  telegramLinkCode       String?
+  createdAt              DateTime @default(now())
+
+  incomes                    Income[]
+  expenses                   Expense[]
+  personalDeductions         PersonalDeduction[]
+  uncategorisedReminders     UncategorisedReminder[]
+}
+
+model Income {
+  id             Int      @id @default(autoincrement())
+  userId         Int
+  month          String
+  brutto         Decimal
+  netto          Decimal?
+  bruttoHistory  Json     @default("[]")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, month])
+}
+
+model Overhead {
+  id          Int      @id @default(autoincrement())
+  name        String
+  amountPln   Decimal
+  isOneOff    Boolean  @default(false)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Jar {
+  id          Int       @id @default(autoincrement())
+  name        String
+  percent     Decimal   @default(0)
+  status      String    @default("ACTIVE")
+  archivedAt  DateTime?
+  isPersonal  Boolean   @default(false)
+  isFood      Boolean   @default(false)
+
+  expenses      Expense[]
+  carryForwards JarCarryForward[]
+}
+
+model Expense {
+  id               Int      @id @default(autoincrement())
+  userId           Int
+  jarId            Int?
+  amountPln        Decimal
+  originalAmount   Decimal
+  originalCurrency String   @default("PLN")
+  exchangeRate     Decimal?
+  isManualRate     Boolean  @default(false)
+  description      String?
+  date             DateTime
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             User     @relation(fields: [userId], references: [id])
+  jar              Jar?     @relation(fields: [jarId], references: [id])
+}
+
+model PersonalDeduction {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  name        String
+  amountPln   Decimal
+  isOneOff    Boolean  @default(false)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model MonthlySnapshot {
+  id            Int      @id @default(autoincrement())
+  month         String   @unique
+  snapshotData  Json
+  carryForwards Json
+  foodOverspend Decimal  @default(0)
+  createdAt     DateTime @default(now())
+}
+
+model JarCarryForward {
+  id      Int     @id @default(autoincrement())
+  jarId   Int
+  month   String
+  amount  Decimal
+
+  jar     Jar     @relation(fields: [jarId], references: [id])
+
+  @@unique([jarId, month])
+}
+
+model UncategorisedReminder {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  sentAt        DateTime @default(now())
+  expenseCount  Int
+
+  user          User     @relation(fields: [userId], references: [id])
+}
