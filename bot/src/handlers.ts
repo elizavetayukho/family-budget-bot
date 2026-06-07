@@ -56,20 +56,18 @@ function matchJar(hint: string, jars: Awaited<ReturnType<typeof getActiveJars>>)
 export async function handleLinkCode(ctx: BotContext) {
   const text = ctx.message?.text ?? '';
   const code = text.trim();
-  if (!/^\d{6}$/.test(code)) return false; // not a 6-digit code
+  if (!/^\d{6}$/.test(code)) return false;
 
-  const res = await fetch(`${API_URL}/api/account/telegram/confirm`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code, telegramId: String(ctx.from!.id) }),
+  const user = await prisma.user.findFirst({ where: { telegramLinkCode: code } });
+  if (!user) return false;
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { telegramId: String(ctx.from!.id), telegramLinkCode: null },
   });
 
-  if (res.ok) {
-    const data = await res.json() as { name: string };
-    await ctx.reply(`✓ Linked! Welcome, ${data.name}. You can now log expenses and check balances.`);
-    return true;
-  }
-  return false;
+  await ctx.reply(`✓ Linked! Welcome, ${user.name}. You can now log expenses and check balances.`);
+  return true;
 }
 
 // ── Balance check ─────────────────────────────────────────────────────────────
