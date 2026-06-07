@@ -6,7 +6,7 @@ import { api } from '../lib/api';
 interface Deduction { name: string; amount: string }
 interface JarAlloc { id: number; name: string; percent: string }
 
-export default function Onboarding() {
+export default function Onboarding({ onComplete }: { onComplete?: () => void }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
@@ -92,6 +92,7 @@ export default function Onboarding() {
         await api.patch(`/jars/${j.id}`, { percent: parseFloat(j.percent) || 0 });
       }
 
+      onComplete?.();
       navigate('/', { replace: true });
     } finally {
       setBusy(false);

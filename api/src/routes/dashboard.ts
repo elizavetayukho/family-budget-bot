@@ -6,6 +6,11 @@ import { PrismaClient } from '@prisma/client';
 const router = Router();
 const prisma = new PrismaClient();
 
+router.get('/setup-status', requireAuth, async (_req, res) => {
+  const incomeCount = await prisma.income.count();
+  res.json({ onboardingComplete: incomeCount > 0 });
+});
+
 router.get('/', requireAuth, async (req, res) => {
   try {
     const state = await calculateDashboard(req.user!.id);
