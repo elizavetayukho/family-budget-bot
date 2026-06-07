@@ -23,6 +23,7 @@ bot.use(session<SessionData, BotContext>({
 // Set the command menu that appears when user taps the input field
 bot.api.setMyCommands([
   { command: 'start', description: 'Start / re-link account' },
+  { command: 'log', description: 'Log a new expense' },
   { command: 'balance', description: 'Check all jar balances' },
   { command: 'jars', description: 'Pick a jar to check balance' },
   { command: 'help', description: 'How to log expenses' },
@@ -59,6 +60,27 @@ bot.command('help', async (ctx) => {
     `• <code>how much in safety</code>`,
     { parse_mode: 'HTML' }
   );
+});
+
+// ── /log — start expense logging flow ────────────────────────────────────────
+bot.command('log', async (ctx) => {
+  const telegramId = String(ctx.from!.id);
+  const user = await resolveUser(telegramId);
+  if (!user) return ctx.reply(`Link your Telegram account first at ${WEB_URL}/account`);
+
+  const jars = await prisma.jar.findMany({ where: { status: 'ACTIVE', isPersonal: false } });
+  const keyboard = new InlineKeyboard();
+  jars.forEach((jar, i) => {
+    keyboard.text(jar.name, `jar:${jar.id}:${jar.name}`);
+    if (i % 2 === 1) keyboard.row();
+  });
+  keyboard.row().text('No jar (uncategorised)', 'jar:null:No jar');
+  keyboard.row().text('Cancel', 'cancel');
+
+  await ctx.reply('How much did you spend? (e.g. <code>45</code> or <code>50 USD</code>)\n\nOr pick a jar first:', {
+    parse_mode: 'HTML',
+    reply_markup: keyboard,
+  });
 });
 
 // ── /balance — show all jars as text ─────────────────────────────────────────
