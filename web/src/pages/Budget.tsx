@@ -30,7 +30,9 @@ export default function Budget() {
   const [nettoInputs, setNettoInputs] = useState<Record<number, string>>({});
   const [showHistory, setShowHistory] = useState<Record<number, boolean>>({});
   const [newOverhead, setNewOverhead] = useState({ name: '', amount: '' });
+  const [editOverhead, setEditOverhead] = useState<Record<number, { name: string; amount: string }>>({});
   const [newDeduction, setNewDeduction] = useState<Record<number, { name: string; amount: string }>>({});
+  const [editDeduction, setEditDeduction] = useState<Record<number, { name: string; amount: string }>>({});
 
   const currentMonth = () => {
     const d = new Date();
@@ -82,6 +84,15 @@ export default function Budget() {
     }
   };
 
+  const saveOverhead = async (id: number) => {
+    const e = editOverhead[id];
+    if (!e) return;
+    await api.patch(`/overheads/${id}`, { name: e.name, amountPln: parseFloat(e.amount) });
+    addToast('Saved. Changes apply from next reset.');
+    setEditOverhead((p) => { const n = { ...p }; delete n[id]; return n; });
+    await load();
+  };
+
   const deleteOverhead = async (id: number) => {
     await api.delete(`/overheads/${id}`);
     addToast('Saved. Changes apply from next reset.');
@@ -93,6 +104,15 @@ export default function Budget() {
     await api.post('/overheads', { name: newOverhead.name, amountPln: parseFloat(newOverhead.amount) });
     addToast('Saved. Changes apply from next reset.');
     setNewOverhead({ name: '', amount: '' });
+    await load();
+  };
+
+  const saveDeduction = async (id: number) => {
+    const e = editDeduction[id];
+    if (!e) return;
+    await api.patch(`/deductions/${id}`, { name: e.name, amountPln: parseFloat(e.amount) });
+    addToast('Saved. Changes apply from next reset.');
+    setEditDeduction((p) => { const n = { ...p }; delete n[id]; return n; });
     await load();
   };
 
@@ -219,21 +239,45 @@ export default function Budget() {
               </tr>
             </thead>
             <tbody>
-              {overheads.map((o) => (
-                <tr key={o.id} className="border-b last:border-0">
-                  <td className="px-4 py-2">
-                    {o.name}
-                    {o.isOneOff && <span className="ml-2 text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">One-off</span>}
-                  </td>
-                  <td className="px-4 py-2 text-right">{fmtPln(Number(o.amountPln))}</td>
-                  <td className="px-4 py-2 text-right">{fmtPln(Number(o.amountPln) / 2)}</td>
-                  {isAdmin && (
-                    <td className="px-4 py-2 text-right">
-                      <button onClick={() => deleteOverhead(o.id)} className="text-xs text-red-400 hover:text-red-600">Delete</button>
+              {overheads.map((o) => {
+                const editing = editOverhead[o.id];
+                return (
+                  <tr key={o.id} className="border-b last:border-0">
+                    <td className="px-4 py-2">
+                      {isAdmin && editing ? (
+                        <input value={editing.name} onChange={(e) => setEditOverhead((p) => ({ ...p, [o.id]: { ...editing, name: e.target.value } }))}
+                          className="border-b border-gray-300 focus:border-blue-500 outline-none text-sm w-40" />
+                      ) : (
+                        <span>{o.name}{o.isOneOff && <span className="ml-2 text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">One-off</span>}</span>
+                      )}
                     </td>
-                  )}
-                </tr>
-              ))}
+                    <td className="px-4 py-2 text-right">
+                      {isAdmin && editing ? (
+                        <input type="number" value={editing.amount} onChange={(e) => setEditOverhead((p) => ({ ...p, [o.id]: { ...editing, amount: e.target.value } }))}
+                          className="border-b border-gray-300 focus:border-blue-500 outline-none text-sm w-24 text-right" />
+                      ) : fmtPln(Number(o.amountPln))}
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      {editing ? fmtPln((parseFloat(editing.amount) || 0) / 2) : fmtPln(Number(o.amountPln) / 2)}
+                    </td>
+                    {isAdmin && (
+                      <td className="px-4 py-2 text-right whitespace-nowrap">
+                        {editing ? (
+                          <>
+                            <button onClick={() => saveOverhead(o.id)} className="text-xs text-blue-600 hover:underline mr-2">Save</button>
+                            <button onClick={() => setEditOverhead((p) => { const n = { ...p }; delete n[o.id]; return n; })} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+                          </>
+                        ) : (
+                          <>
+                            <button onClick={() => setEditOverhead((p) => ({ ...p, [o.id]: { name: o.name, amount: String(o.amountPln) } }))} className="text-xs text-blue-500 hover:underline mr-2">Edit</button>
+                            <button onClick={() => deleteOverhead(o.id)} className="text-xs text-red-400 hover:text-red-600">Delete</button>
+                          </>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
               <tr className="border-t bg-gray-50 font-medium">
                 <td className="px-4 py-2">Total</td>
                 <td className="px-4 py-2 text-right">{fmtPln(totalOverheads)}</td>
@@ -273,17 +317,40 @@ export default function Budget() {
                     {userDeds.length === 0 && (
                       <tr><td colSpan={2} className="px-4 py-3 text-sm text-gray-400">No deductions.</td></tr>
                     )}
-                    {userDeds.map((d) => (
-                      <tr key={d.id} className="border-b last:border-0">
-                        <td className="px-4 py-2">{d.name}</td>
-                        <td className="px-4 py-2 text-right flex items-center justify-end gap-2">
-                          <span>{fmtPln(Number(d.amountPln))}</span>
-                          {canEdit && (
-                            <button onClick={() => deleteDeduction(d.id)} className="text-xs text-red-400 hover:text-red-600">Delete</button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                    {userDeds.map((d) => {
+                      const ded = editDeduction[d.id];
+                      return (
+                        <tr key={d.id} className="border-b last:border-0">
+                          <td className="px-4 py-2">
+                            {canEdit && ded ? (
+                              <input value={ded.name} onChange={(e) => setEditDeduction((p) => ({ ...p, [d.id]: { ...ded, name: e.target.value } }))}
+                                className="border-b border-gray-300 focus:border-blue-500 outline-none text-sm w-32" />
+                            ) : d.name}
+                          </td>
+                          <td className="px-4 py-2 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {canEdit && ded ? (
+                                <input type="number" value={ded.amount} onChange={(e) => setEditDeduction((p) => ({ ...p, [d.id]: { ...ded, amount: e.target.value } }))}
+                                  className="border-b border-gray-300 focus:border-blue-500 outline-none text-sm w-20 text-right" />
+                              ) : (
+                                <span>{fmtPln(Number(d.amountPln))}</span>
+                              )}
+                              {canEdit && (ded ? (
+                                <>
+                                  <button onClick={() => saveDeduction(d.id)} className="text-xs text-blue-600 hover:underline">Save</button>
+                                  <button onClick={() => setEditDeduction((p) => { const n = { ...p }; delete n[d.id]; return n; })} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+                                </>
+                              ) : (
+                                <>
+                                  <button onClick={() => setEditDeduction((p) => ({ ...p, [d.id]: { name: d.name, amount: String(d.amountPln) } }))} className="text-xs text-blue-500 hover:underline">Edit</button>
+                                  <button onClick={() => deleteDeduction(d.id)} className="text-xs text-red-400 hover:text-red-600">Delete</button>
+                                </>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
                 {canEdit && (
