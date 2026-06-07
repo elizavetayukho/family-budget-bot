@@ -63,12 +63,17 @@ export default function Onboarding({ onComplete }: { onComplete?: () => void }) 
       const lizId = users.find((u) => u.role === 'ADMIN')!.id;
       const edgarId = users.find((u) => u.role === 'USER')!.id;
 
-      // Set brutto for both
-      if (lizBrutto) await api.post('/income/brutto', { userId: lizId, newBrutto: parseFloat(lizBrutto), reason: 'Initial setup' });
-      if (edgarBrutto) await api.post('/income/brutto', { userId: edgarId, newBrutto: parseFloat(edgarBrutto), reason: 'Initial setup' });
-
-      // Set netto if provided (for current month, post directly)
-      if (lizNetto) await api.post('/income/netto', { month, netto: parseFloat(lizNetto) });
+      // Set brutto + netto for current month directly (setup endpoint)
+      if (lizBrutto) await api.post('/income/setup', {
+        userId: lizId, month,
+        brutto: parseFloat(lizBrutto),
+        netto: lizNetto ? parseFloat(lizNetto) : null,
+      });
+      if (edgarBrutto) await api.post('/income/setup', {
+        userId: edgarId, month,
+        brutto: parseFloat(edgarBrutto),
+        netto: edgarNetto ? parseFloat(edgarNetto) : null,
+      });
 
       // Food overhead already seeded; update if changed
       const overheads = await api.get<{ id: number; name: string }[]>('/overheads');

@@ -16,6 +16,18 @@ function nextMonth() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
+// Used during onboarding to set both brutto and netto for the current month directly
+router.post('/setup', requireAuth, requireAdmin, async (req, res) => {
+  const { userId, brutto, netto, month } = req.body;
+  const m = month || currentMonth();
+  const record = await prisma.income.upsert({
+    where: { userId_month: { userId: Number(userId), month: m } },
+    update: { brutto, ...(netto != null ? { netto } : {}) },
+    create: { userId: Number(userId), month: m, brutto, netto: netto ?? null },
+  });
+  res.json(record);
+});
+
 router.post('/netto', requireAuth, async (req, res) => {
   const { month, netto, userId } = req.body;
   const isAdmin = req.user!.role === 'ADMIN';
