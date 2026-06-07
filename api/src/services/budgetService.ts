@@ -15,6 +15,10 @@ export interface JarBalance {
   totalSpending: number;
   carryForward: number;
   balance: number;
+  // Per-requesting-user fields
+  myContribution: number;
+  mySpendingShare: number;
+  myBalance: number;
 }
 
 export interface PersonResult {
@@ -154,6 +158,12 @@ export async function calculateDashboard(requestingUserId: number): Promise<Dash
 
     const balance = totalContribution - totalSpending + carryForward;
 
+    // Per-requesting-user share
+    const myContribution = requestingUserId === lizUser.id ? contribLiz : contribEdgar;
+    const shareRatio = totalContribution > 0 ? myContribution / totalContribution : 0.5;
+    const mySpendingShare = shareRatio * totalSpending;
+    const myBalance = myContribution - mySpendingShare;
+
     sharedJarBalances.push({
       id: jar.id,
       name: jar.name,
@@ -167,6 +177,9 @@ export async function calculateDashboard(requestingUserId: number): Promise<Dash
       totalSpending,
       carryForward,
       balance,
+      myContribution,
+      mySpendingShare,
+      myBalance,
     });
   }
 

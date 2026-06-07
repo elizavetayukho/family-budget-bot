@@ -15,6 +15,7 @@ interface Expense {
 interface JarInfo {
   id: number; name: string; balance: number; percent: number;
   totalContribution: number; totalSpending: number;
+  myContribution: number; mySpendingShare: number; myBalance: number;
 }
 
 interface Props {
@@ -60,19 +61,43 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
         </div>
 
-        <div className="p-4 border-b">
-          <div className={`text-2xl font-bold ${jar.balance < 0 ? 'text-red-600' : 'text-gray-900'}`}>
-            {fmtPln(jar.balance)}
+        <div className="p-4 border-b space-y-3">
+          {/* Combined balance */}
+          <div>
+            <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Total pool</p>
+            <div className={`text-2xl font-bold ${jar.balance < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+              {fmtPln(jar.balance)}
+            </div>
+            {jar.balance < 0 && (
+              <p className="text-xs text-red-500 mt-0.5">{fmtPln(Math.abs(jar.balance))} over — carried to next month</p>
+            )}
+            <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div className={`h-1.5 rounded-full ${jar.balance < 0 ? 'bg-red-400' : 'bg-blue-400'}`}
+                style={{ width: `${Math.min(100, jar.totalContribution > 0 ? (jar.totalSpending / jar.totalContribution) * 100 : 0)}%` }} />
+            </div>
+            <p className="text-xs text-gray-400 mt-1">{fmtPln(jar.totalSpending)} spent of {fmtPln(jar.totalContribution)} total</p>
           </div>
-          {jar.balance < 0 && (
-            <p className="text-sm text-red-500 mt-1">{fmtPln(Math.abs(jar.balance))} over — carried to next month</p>
-          )}
-          <p className="text-sm text-gray-500 mt-1">{jar.percent}% of discretionary · {fmtPln(jar.totalContribution)} contributed · {fmtPln(jar.totalSpending)} spent</p>
-          <div className="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
-            <div
-              className="h-2 bg-blue-500 rounded-full"
-              style={{ width: `${Math.min(100, jar.totalContribution > 0 ? (jar.totalSpending / jar.totalContribution) * 100 : 0)}%` }}
-            />
+
+          {/* Per-person breakdown */}
+          <div className="border-t pt-3">
+            <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Your share</p>
+            <div className={`text-lg font-semibold ${jar.myBalance < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+              {fmtPln(jar.myBalance)}
+            </div>
+            <div className="mt-2 space-y-1 text-xs text-gray-500">
+              <div className="flex justify-between">
+                <span>Your contribution this month</span>
+                <span className="font-medium text-gray-700">{fmtPln(jar.myContribution)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Your share of spending</span>
+                <span className="font-medium text-red-500">−{fmtPln(jar.mySpendingShare)}</span>
+              </div>
+              <div className="flex justify-between border-t pt-1">
+                <span className="font-medium text-gray-700">Your remaining share</span>
+                <span className={`font-semibold ${jar.myBalance < 0 ? 'text-red-600' : 'text-gray-900'}`}>{fmtPln(jar.myBalance)}</span>
+              </div>
+            </div>
           </div>
         </div>
 

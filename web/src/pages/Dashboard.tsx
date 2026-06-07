@@ -15,6 +15,7 @@ interface PersonResult {
 interface JarBalance {
   id: number; name: string; percent: number; isPersonal: boolean; isFood: boolean;
   balance: number; totalContribution: number; totalSpending: number; carryForward: number;
+  myContribution: number; mySpendingShare: number; myBalance: number;
 }
 
 interface DashboardState {
@@ -200,7 +201,9 @@ export default function Dashboard() {
               <div className={`h-1.5 rounded-full ${jar.balance < 0 ? 'bg-red-400' : 'bg-blue-400'}`}
                 style={{ width: `${Math.min(100, jar.totalContribution > 0 ? (jar.totalSpending / jar.totalContribution) * 100 : 0)}%` }} />
             </div>
-            <p className="text-xs text-gray-400 mt-1">{fmtPln(jar.totalSpending)} of {fmtPln(jar.totalContribution)}</p>
+            <p className="text-xs text-gray-400 mt-1">
+              Total: {fmtPln(jar.balance)} · Your share: <span className={jar.myBalance < 0 ? 'text-red-500' : 'text-gray-500'}>{fmtPln(jar.myBalance)}</span>
+            </p>
             {jar.carryForward !== 0 && (
               <p className={`text-xs mt-1 font-medium ${jar.carryForward > 0 ? 'text-green-600' : 'text-red-500'}`}>
                 {jar.carryForward > 0 ? '+' : ''}{fmtPln(jar.carryForward)} from last month
