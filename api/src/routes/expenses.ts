@@ -9,10 +9,12 @@ router.post('/', requireAuth, async (req, res) => {
   const {
     amountPln, originalAmount, originalCurrency = 'PLN',
     exchangeRate, isManualRate = false,
-    jarId, description, date,
+    jarId, description, date, userId: bodyUserId,
   } = req.body;
 
-  // Privacy: personal jar — only own expenses
+  const isAdmin = req.user!.role === 'ADMIN';
+  const targetUserId = bodyUserId && isAdmin ? Number(bodyUserId) : req.user!.id;
+
   if (jarId) {
     const jar = await prisma.jar.findUnique({ where: { id: jarId } });
     if (!jar) return res.status(404).json({ error: 'Jar not found' });
@@ -21,7 +23,7 @@ router.post('/', requireAuth, async (req, res) => {
 
   const expense = await prisma.expense.create({
     data: {
-      userId: req.user!.id,
+      userId: targetUserId,
       jarId: jarId ?? null,
       amountPln,
       originalAmount,

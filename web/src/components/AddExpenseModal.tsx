@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { api } from '../lib/api';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 
 interface Jar { id: number; name: string }
+interface User { id: number; name: string }
 interface Props {
   preselectedJarId?: number;
   editExpense?: {
@@ -17,7 +19,11 @@ const CURRENCIES = ['PLN', 'USD', 'EUR', 'BYN'];
 
 export default function AddExpenseModal({ preselectedJarId, editExpense, onClose, onSaved }: Props) {
   const { addToast } = useToast();
+  const { user: currentUser } = useAuth();
+  const isAdmin = currentUser?.role === 'ADMIN';
   const [jars, setJars] = useState<Jar[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [logAsUserId, setLogAsUserId] = useState<number | null>(null);
   const [amount, setAmount] = useState(editExpense ? String(editExpense.originalAmount) : '');
   const [currency, setCurrency] = useState(editExpense?.originalCurrency ?? 'PLN');
   const [jarId, setJarId] = useState<number | null>(
@@ -37,7 +43,10 @@ export default function AddExpenseModal({ preselectedJarId, editExpense, onClose
 
   useEffect(() => {
     api.get<Jar[]>('/jars').then(setJars);
-  }, []);
+    if (isAdmin) {
+      api.get<{ users: User[] }>('/dashboard/summary').then(r => setUsers(r.users));
+    }
+  }, [isAdmin]);
 
   useEffect(() => {
     if (currency === 'PLN') { setRateNeeded(false); setRateError(''); return; }
@@ -75,6 +84,7 @@ export default function AddExpenseModal({ preselectedJarId, editExpense, onClose
         exchangeRate: currency !== 'PLN' ? rate : null,
         isManualRate: currency !== 'PLN' && !!manualRate,
         jarId: jarId ?? null, description: description || null, date,
+        ...(isAdmin && logAsUserId ? { userId: logAsUserId } : {}),
       };
 
       if (editExpense) {
@@ -114,6 +124,32 @@ export default function AddExpenseModal({ preselectedJarId, editExpense, onClose
         <h2 className="text-lg font-semibold mb-4">{editExpense ? 'Edit expense' : 'Add expense'}</h2>
 
         <div className="space-y-4">
+          {isAdmin && !editExpense && users.length > 0 && (
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Log as</label>
+              <div className="flex gap-2">
+                {users.map((u) => (
+                  <button
+                    key={u.id}
+                    type="button"
+                    onClick={() => setLogAsUserId(logAsUserId === u.id ? null : u.id)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                      logAsUserId === u.id
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+                    }`}
+                  >
+                    {u.name}
+                  </button>
+                ))}
+              </div>
+              {logAsUserId && (
+                <p className="text-xs text-blue-600 mt-1">
+                  Logging as {users.find(u => u.id === logAsUserId)?.name}
+                </p>
+              )}
+            </div>
+          )}
           <div className="flex gap-2">
             <div className="flex-1">
               <label className="block text-sm text-gray-600 mb-1">Amount *</label>
