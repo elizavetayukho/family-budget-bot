@@ -1,10 +1,10 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "buildCommand": "npm install && npm run build && cd api && npx prisma generate"
+    "buildCommand": "npm install && cd api && npx prisma generate && cd .. && npm run build"
   },
   "deploy": {
-    "startCommand": "cd api && npx prisma migrate deploy && cd .. && npm start",
+    "startCommand": "cd api && npx prisma migrate deploy && npx ts-node prisma/seed.ts && cd .. && node api/dist/index.js & node bot/dist/index.js & wait",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 5
   }
