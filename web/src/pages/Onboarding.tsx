@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 
 interface Deduction { name: string; amount: string }
-interface JarAlloc { id: number; name: string; percent: string; openingBalance: string }
+interface JarAlloc { id: number; name: string; percent: string; openingBalanceLiz: string; openingBalanceEdgar: string }
 
 export default function Onboarding({ onComplete }: { onComplete?: () => void }) {
   const { user } = useAuth();
@@ -45,7 +45,7 @@ export default function Onboarding({ onComplete }: { onComplete?: () => void }) 
   const loadJars = async () => {
     if (jarsLoaded) return;
     const data = await api.get<{ id: number; name: string; percent: number; isPersonal: boolean; isFood: boolean }[]>('/jars');
-    setJars(data.filter((j) => !j.isPersonal && !j.isFood).map((j) => ({ id: j.id, name: j.name, percent: String(j.percent), openingBalance: '' })));
+    setJars(data.filter((j) => !j.isPersonal && !j.isFood).map((j) => ({ id: j.id, name: j.name, percent: String(j.percent), openingBalanceLiz: '', openingBalanceEdgar: '' })));
     setJarsLoaded(true);
   };
 
@@ -96,7 +96,8 @@ export default function Onboarding({ onComplete }: { onComplete?: () => void }) 
       for (const j of jars) {
         await api.patch(`/jars/${j.id}`, {
           percent: parseFloat(j.percent) || 0,
-          openingBalance: j.openingBalance !== '' ? parseFloat(j.openingBalance) || 0 : 0,
+          openingBalanceLiz: j.openingBalanceLiz !== '' ? parseFloat(j.openingBalanceLiz) || 0 : 0,
+          openingBalanceEdgar: j.openingBalanceEdgar !== '' ? parseFloat(j.openingBalanceEdgar) || 0 : 0,
         });
       }
 
@@ -233,15 +234,21 @@ export default function Onboarding({ onComplete }: { onComplete?: () => void }) 
                     <span className="text-sm text-gray-500">%</span>
                   </div>
                 </div>
+                <p className="text-xs text-gray-400 pl-1">Carry-forward from before the app — positive = surplus, negative = overspend.</p>
                 <div className="flex items-center gap-2 pl-1">
-                  <span className="text-xs text-gray-400 flex-1">Carry-forward from before app (optional)</span>
-                  <input type="number" value={j.openingBalance} step="0.01"
-                    placeholder="0"
-                    onChange={(e) => setJars((prev) => prev.map((x, k) => k === i ? { ...x, openingBalance: e.target.value } : x))}
+                  <span className="text-xs text-gray-500 w-20">Lizaveta</span>
+                  <input type="number" value={j.openingBalanceLiz} step="0.01" placeholder="0"
+                    onChange={(e) => setJars((prev) => prev.map((x, k) => k === i ? { ...x, openingBalanceLiz: e.target.value } : x))}
                     className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-sm text-right" />
                   <span className="text-xs text-gray-400">PLN</span>
                 </div>
-                <p className="text-xs text-gray-400 pl-1">Positive = surplus, negative = overspend.</p>
+                <div className="flex items-center gap-2 pl-1">
+                  <span className="text-xs text-gray-500 w-20">Edgar</span>
+                  <input type="number" value={j.openingBalanceEdgar} step="0.01" placeholder="0"
+                    onChange={(e) => setJars((prev) => prev.map((x, k) => k === i ? { ...x, openingBalanceEdgar: e.target.value } : x))}
+                    className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-sm text-right" />
+                  <span className="text-xs text-gray-400">PLN</span>
+                </div>
               </div>
             ))}
             <div className={`text-sm font-medium pt-1 ${totalPercent > 100 ? 'text-red-600' : 'text-gray-700'}`}>

@@ -56,7 +56,8 @@ model Jar {
   archivedAt     DateTime?
   isPersonal     Boolean   @default(false)
   isFood         Boolean   @default(false)
-  openingBalance Decimal   @default(0)
+  openingBalanceLiz   Decimal   @default(0)
+  openingBalanceEdgar Decimal   @default(0)
 
   expenses      Expense[]
   carryForwards JarCarryForward[]

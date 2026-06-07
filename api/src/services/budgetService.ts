@@ -157,14 +157,18 @@ export async function calculateDashboard(requestingUserId: number): Promise<Dash
     const contribEdgar = edgar.jarContributions[jar.id] ?? 0;
     const totalContribution = contribLiz + contribEdgar;
 
-    const openingBalance = Number((jar as { openingBalance?: unknown }).openingBalance ?? 0);
-    const balance = totalContribution - totalSpending + carryForward + openingBalance;
+    const j = jar as { openingBalanceLiz?: unknown; openingBalanceEdgar?: unknown };
+    const openingBalanceLiz = Number(j.openingBalanceLiz ?? 0);
+    const openingBalanceEdgar = Number(j.openingBalanceEdgar ?? 0);
+    const totalOpeningBalance = openingBalanceLiz + openingBalanceEdgar;
+    const balance = totalContribution - totalSpending + carryForward + totalOpeningBalance;
 
     // Per-requesting-user share
     const myContribution = requestingUserId === lizUser.id ? contribLiz : contribEdgar;
+    const myOpeningBalance = requestingUserId === lizUser.id ? openingBalanceLiz : openingBalanceEdgar;
     const shareRatio = totalContribution > 0 ? myContribution / totalContribution : 0.5;
     const mySpendingShare = shareRatio * totalSpending;
-    const myBalance = myContribution - mySpendingShare + shareRatio * openingBalance;
+    const myBalance = myContribution - mySpendingShare + myOpeningBalance;
 
     sharedJarBalances.push({
       id: jar.id,
@@ -182,7 +186,7 @@ export async function calculateDashboard(requestingUserId: number): Promise<Dash
       myContribution,
       mySpendingShare,
       myBalance,
-      openingBalance,
+      openingBalance: myOpeningBalance,
     });
   }
 

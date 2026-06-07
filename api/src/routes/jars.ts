@@ -22,13 +22,14 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
 });
 
 router.patch('/:id', requireAuth, requireAdmin, async (req, res) => {
-  const { name, percent, openingBalance } = req.body;
+  const { name, percent, openingBalanceLiz, openingBalanceEdgar } = req.body;
   const jar = await prisma.jar.update({
     where: { id: Number(req.params.id) },
     data: {
       ...(name !== undefined ? { name } : {}),
       ...(percent !== undefined ? { percent } : {}),
-      ...(openingBalance !== undefined ? { openingBalance } : {}),
+      ...(openingBalanceLiz !== undefined ? { openingBalanceLiz } : {}),
+      ...(openingBalanceEdgar !== undefined ? { openingBalanceEdgar } : {}),
     },
   });
   res.json(jar);

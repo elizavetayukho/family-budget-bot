@@ -7,7 +7,7 @@ import { useToast } from '../context/ToastContext';
 interface Jar {
   id: number; name: string; percent: number; status: string;
   archivedAt?: string; isPersonal: boolean; isFood: boolean;
-  openingBalance?: number;
+  openingBalanceLiz?: number; openingBalanceEdgar?: number;
 }
 
 export default function Jars() {
@@ -20,7 +20,8 @@ export default function Jars() {
   const [showArchived, setShowArchived] = useState(false);
   const [editPercents, setEditPercents] = useState<Record<number, string>>({});
   const [editNames, setEditNames] = useState<Record<number, string>>({});
-  const [editOpeningBalances, setEditOpeningBalances] = useState<Record<number, string>>({});
+  const [editOpeningLiz, setEditOpeningLiz] = useState<Record<number, string>>({});
+  const [editOpeningEdgar, setEditOpeningEdgar] = useState<Record<number, string>>({});
   const [confirmArchive, setConfirmArchive] = useState<number | null>(null);
   const [confirmRestore, setConfirmRestore] = useState<number | null>(null);
   const [newJar, setNewJar] = useState({ name: '', percent: '' });
@@ -36,15 +37,18 @@ export default function Jars() {
     setArchived(arch);
     const percents: Record<number, string> = {};
     const names: Record<number, string> = {};
-    const openingBals: Record<number, string> = {};
+    const openingLiz: Record<number, string> = {};
+    const openingEdgar: Record<number, string> = {};
     active.forEach((j) => {
       percents[j.id] = String(j.percent);
       names[j.id] = j.name;
-      openingBals[j.id] = j.openingBalance != null && Number(j.openingBalance) !== 0 ? String(j.openingBalance) : '';
+      openingLiz[j.id] = j.openingBalanceLiz != null && Number(j.openingBalanceLiz) !== 0 ? String(j.openingBalanceLiz) : '';
+      openingEdgar[j.id] = j.openingBalanceEdgar != null && Number(j.openingBalanceEdgar) !== 0 ? String(j.openingBalanceEdgar) : '';
     });
     setEditPercents(percents);
     setEditNames(names);
-    setEditOpeningBalances(openingBals);
+    setEditOpeningLiz(openingLiz);
+    setEditOpeningEdgar(openingEdgar);
   };
 
   useEffect(() => { load(); }, []);
@@ -56,11 +60,11 @@ export default function Jars() {
     setBusy(true);
     try {
       for (const j of jars.filter((j) => !j.isPersonal)) {
-        const ob = editOpeningBalances[j.id];
         await api.patch(`/jars/${j.id}`, {
           name: editNames[j.id] ?? j.name,
           percent: parseFloat(editPercents[j.id] ?? '0') || 0,
-          openingBalance: ob !== '' && ob !== undefined ? parseFloat(ob) || 0 : 0,
+          openingBalanceLiz: parseFloat(editOpeningLiz[j.id] ?? '0') || 0,
+          openingBalanceEdgar: parseFloat(editOpeningEdgar[j.id] ?? '0') || 0,
         });
       }
       addToast('Saved. Changes apply from next reset.');
@@ -155,7 +159,8 @@ export default function Jars() {
             <tr>
               <th className="text-left px-4 py-2">Jar</th>
               <th className="text-right px-4 py-2">%</th>
-              {isAdmin && <th className="text-right px-4 py-2 text-gray-400">Opening balance</th>}
+              {isAdmin && <th className="text-right px-4 py-2 text-gray-400">Opening · Lizaveta</th>}
+              {isAdmin && <th className="text-right px-4 py-2 text-gray-400">Opening · Edgar</th>}
               {isAdmin && <th className="px-4 py-2" />}
             </tr>
           </thead>
@@ -188,15 +193,20 @@ export default function Jars() {
                     {isAdmin && (
                       <td className="px-4 py-2 text-right">
                         {!j.isPersonal ? (
-                          <input
-                            type="number"
-                            value={editOpeningBalances[j.id] ?? ''}
-                            step="0.01"
-                            placeholder="0"
-                            onChange={(e) => setEditOpeningBalances((p) => ({ ...p, [j.id]: e.target.value }))}
+                          <input type="number" value={editOpeningLiz[j.id] ?? ''} step="0.01" placeholder="0"
+                            onChange={(e) => setEditOpeningLiz((p) => ({ ...p, [j.id]: e.target.value }))}
                             className="w-24 text-right border-b border-gray-200 focus:border-blue-500 outline-none text-sm"
-                            title="Carry-forward from before the app. Positive = surplus, negative = overspend."
-                          />
+                            title="Lizaveta's carry-forward from before the app" />
+                        ) : <span />}
+                      </td>
+                    )}
+                    {isAdmin && (
+                      <td className="px-4 py-2 text-right">
+                        {!j.isPersonal ? (
+                          <input type="number" value={editOpeningEdgar[j.id] ?? ''} step="0.01" placeholder="0"
+                            onChange={(e) => setEditOpeningEdgar((p) => ({ ...p, [j.id]: e.target.value }))}
+                            className="w-24 text-right border-b border-gray-200 focus:border-blue-500 outline-none text-sm"
+                            title="Edgar's carry-forward from before the app" />
                         ) : <span />}
                       </td>
                     )}
