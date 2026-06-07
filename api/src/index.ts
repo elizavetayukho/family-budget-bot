@@ -19,7 +19,7 @@ import historyRoutes from './routes/history';
 import adminRoutes from './routes/admin';
 
 const app = express();
-const PORT = 3001;
+const PORT = Number(process.env.PORT) || 3001;
 
 app.use(cors({
   origin: process.env.WEB_APP_URL || 'http://localhost:5173',
