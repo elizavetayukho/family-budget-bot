@@ -153,7 +153,7 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
                 <span className="font-medium text-gray-700">{fmtPln(jar.myContribution)}</span>
               </div>
               <div className="flex justify-between">
-                <span>Your share of spending</span>
+                <span>Your spending this month</span>
                 <span className="font-medium text-red-500">−{fmtPln(jar.mySpendingShare)}</span>
               </div>
               <div className="flex justify-between border-t pt-1">

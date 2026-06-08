@@ -174,11 +174,12 @@ export async function calculateDashboard(requestingUserId: number): Promise<Dash
       .filter(t => t.toUserId === requestingUserId)
       .reduce((s, t) => s + Number(t.amountPln), 0);
 
-    // Per-requesting-user share
+    // Per-requesting-user share — use actual spending by this user, not proportional
     const myContribution = requestingUserId === lizUser.id ? contribLiz : contribEdgar;
     const myOpeningBalance = requestingUserId === lizUser.id ? openingBalanceLiz : openingBalanceEdgar;
-    const shareRatio = totalContribution > 0 ? myContribution / totalContribution : 0.5;
-    const mySpendingShare = shareRatio * totalSpending;
+    const mySpendingShare = expenses
+      .filter(e => e.userId === requestingUserId)
+      .reduce((s, e) => s + Number(e.amountPln), 0);
     const myBalance = myContribution - mySpendingShare + myOpeningBalance + transfersIn - transfersOut;
 
     sharedJarBalances.push({
