@@ -54,8 +54,11 @@ const tabs = [
   },
 ];
 
+// Desktop nav links (no Account — that's the avatar)
+const desktopTabs = tabs.filter(t => t.to !== '/account');
+
 export default function NavBar() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const initials = user?.name
     ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
     : '?';
@@ -68,7 +71,7 @@ export default function NavBar() {
           <div className="w-7 h-7 rounded-lg gradient-card mr-3 flex items-center justify-center">
             <span className="text-white text-xs font-bold">FB</span>
           </div>
-          {tabs.map((l) => (
+          {desktopTabs.map((l) => (
             <NavLink key={l.to} to={l.to} end={l.end}
               className={({ isActive }) =>
                 `px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
@@ -89,17 +92,24 @@ export default function NavBar() {
             </NavLink>
           ))}
         </div>
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full gradient-card flex items-center justify-center">
-            <span className="text-white text-xs font-bold">{initials}</span>
-          </div>
-          <button onClick={logout} className="text-xs text-gray-500 hover:text-brand-700 transition-colors">
-            Sign out
-          </button>
-        </div>
+
+        {/* Avatar → links to Account */}
+        <NavLink to="/account"
+          className={({ isActive }) =>
+            `flex items-center gap-2 rounded-xl px-2 py-1 transition-colors ${isActive ? 'bg-brand-100' : 'hover:bg-brand-50'}`
+          }>
+          {({ isActive }) => (
+            <>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${isActive ? 'ring-2 ring-brand-400' : ''} gradient-card`}>
+                <span className="text-white text-xs font-bold">{initials}</span>
+              </div>
+              <span className="text-sm font-medium text-gray-600">{user?.name}</span>
+            </>
+          )}
+        </NavLink>
       </nav>
 
-      {/* Mobile top bar */}
+      {/* Mobile top bar — avatar links to Account */}
       <div className="sm:hidden flex items-center justify-between px-4 py-3 bg-white/80 backdrop-blur-md border-b border-brand-100 sticky top-0 z-20">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg gradient-card flex items-center justify-center">
@@ -107,11 +117,9 @@ export default function NavBar() {
           </div>
           <span className="font-semibold text-brand-900 text-sm">Family Budget</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full gradient-card flex items-center justify-center">
-            <span className="text-white text-xs font-bold">{initials}</span>
-          </div>
-        </div>
+        <NavLink to="/account" className="w-9 h-9 rounded-full gradient-card flex items-center justify-center">
+          <span className="text-white text-xs font-bold">{initials}</span>
+        </NavLink>
       </div>
 
       {/* Mobile bottom tab bar */}

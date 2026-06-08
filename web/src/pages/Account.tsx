@@ -1,10 +1,17 @@
 import { useState } from 'react';
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 
 export default function Account() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login', { replace: true });
+  };
   const [linkCode, setLinkCode] = useState('');
   const [generating, setGenerating] = useState(false);
   const [resetSent, setResetSent] = useState(false);
@@ -76,6 +83,14 @@ export default function Account() {
             {generating ? 'Generating…' : 'Generate code'}
           </button>
         )}
+      </Card>
+
+      <Card>
+        <SectionTitle>Sign out</SectionTitle>
+        <button onClick={handleLogout}
+          className="bg-red-50 text-red-600 border border-red-200 px-4 py-3 rounded-xl text-sm font-semibold hover:bg-red-100 min-h-[44px] transition-colors w-full sm:w-auto">
+          Sign out of Family Budget
+        </button>
       </Card>
 
       <Card>
