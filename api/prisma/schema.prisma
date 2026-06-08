@@ -21,6 +21,8 @@ model User {
   expenses                   Expense[]
   personalDeductions         PersonalDeduction[]
   uncategorisedReminders     UncategorisedReminder[]
+  transfersSent              JarTransfer[]           @relation("TransferFrom")
+  transfersReceived          JarTransfer[]           @relation("TransferTo")
 }
 
 model Income {
@@ -61,6 +63,7 @@ model Jar {
 
   expenses      Expense[]
   carryForwards JarCarryForward[]
+  transfers     JarTransfer[]
 }
 
 model Expense {
@@ -112,6 +115,21 @@ model JarCarryForward {
   jar     Jar     @relation(fields: [jarId], references: [id])
 
   @@unique([jarId, month])
+}
+
+model JarTransfer {
+  id          Int      @id @default(autoincrement())
+  fromUserId  Int
+  toUserId    Int
+  jarId       Int
+  amountPln   Decimal
+  note        String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  fromUser    User     @relation("TransferFrom", fields: [fromUserId], references: [id])
+  toUser      User     @relation("TransferTo", fields: [toUserId], references: [id])
+  jar         Jar      @relation(fields: [jarId], references: [id])
 }
 
 model UncategorisedReminder {

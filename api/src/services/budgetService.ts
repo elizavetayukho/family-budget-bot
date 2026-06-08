@@ -163,12 +163,23 @@ export async function calculateDashboard(requestingUserId: number): Promise<Dash
     const totalOpeningBalance = openingBalanceLiz + openingBalanceEdgar;
     const balance = totalContribution - totalSpending + carryForward + totalOpeningBalance;
 
+    // Transfers within this jar this month
+    const transfers = await prisma.jarTransfer.findMany({
+      where: { jarId: jar.id, date: { gte: startOfMonth, lt: endOfMonth } },
+    });
+    const transfersOut = transfers
+      .filter(t => t.fromUserId === requestingUserId)
+      .reduce((s, t) => s + Number(t.amountPln), 0);
+    const transfersIn = transfers
+      .filter(t => t.toUserId === requestingUserId)
+      .reduce((s, t) => s + Number(t.amountPln), 0);
+
     // Per-requesting-user share
     const myContribution = requestingUserId === lizUser.id ? contribLiz : contribEdgar;
     const myOpeningBalance = requestingUserId === lizUser.id ? openingBalanceLiz : openingBalanceEdgar;
     const shareRatio = totalContribution > 0 ? myContribution / totalContribution : 0.5;
     const mySpendingShare = shareRatio * totalSpending;
-    const myBalance = myContribution - mySpendingShare + myOpeningBalance;
+    const myBalance = myContribution - mySpendingShare + myOpeningBalance + transfersIn - transfersOut;
 
     sharedJarBalances.push({
       id: jar.id,

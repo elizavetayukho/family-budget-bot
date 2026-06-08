@@ -16,7 +16,7 @@ interface JarInfo {
   id: number; name: string; balance: number; percent: number;
   totalContribution: number; totalSpending: number;
   myContribution: number; mySpendingShare: number; myBalance: number;
-  openingBalance: number;
+  openingBalance: number; isPersonal: boolean;
 }
 
 interface Props {
@@ -26,18 +26,69 @@ interface Props {
   onRefresh: () => void;
 }
 
+interface Transfer {
+  id: number;
+  fromUser: { id: number; name: string };
+  toUser: { id: number; name: string };
+  amountPln: number;
+  note?: string;
+  date: string;
+}
+
 export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props) {
   const { user } = useAuth();
   const { addToast } = useToast();
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [addingExpense, setAddingExpense] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [confirmArchive, setConfirmArchive] = useState(false);
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [transferAmount, setTransferAmount] = useState('');
+  const [transferNote, setTransferNote] = useState('');
+  const [otherUser, setOtherUser] = useState<{ id: number; name: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
+  const month = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  })();
+
+  const loadData = () => {
     api.get<Expense[]>(`/expenses?jarId=${jar.id}`).then(setExpenses);
+    api.get<Transfer[]>(`/transfers?jarId=${jar.id}&month=${month}`).then(setTransfers);
+  };
+
+  useEffect(() => {
+    loadData();
+    // Fetch the other user to know who to transfer to
+    api.get<{ users: { id: number; name: string; role: string }[] }>('/dashboard/summary')
+      .then(s => {
+        const other = s.users.find(u => u.id !== user?.id);
+        if (other) setOtherUser({ id: other.id, name: other.name });
+      });
   }, [jar.id]);
+
+  const handleTransfer = async () => {
+    if (!otherUser || !transferAmount || parseFloat(transferAmount) <= 0) return;
+    setBusy(true);
+    try {
+      await api.post('/transfers', {
+        toUserId: otherUser.id,
+        jarId: jar.id,
+        amountPln: parseFloat(transferAmount),
+        note: transferNote || null,
+      });
+      addToast(`Transferred ${fmtPln(parseFloat(transferAmount))} to ${otherUser.name}`, true);
+      setShowTransfer(false);
+      setTransferAmount('');
+      setTransferNote('');
+      loadData();
+      onRefresh();
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const handleArchive = async () => {
     setBusy(true);
@@ -114,7 +165,51 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          {expenses.length === 0 && <p className="text-sm text-gray-500">No expenses this month.</p>}
+          {/* Transfers this month */}
+          {transfers.length > 0 && (
+            <div className="mb-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Transfers</p>
+              {transfers.map(t => (
+                <div key={t.id} className="flex items-center justify-between p-2 rounded-xl bg-brand-50 mb-1">
+                  <div className="text-xs">
+                    <span className="font-semibold text-brand-900">{t.fromUser.name}</span>
+                    <span className="text-gray-500"> → </span>
+                    <span className="font-semibold text-brand-900">{t.toUser.name}</span>
+                    {t.note && <span className="text-gray-500"> · {t.note}</span>}
+                  </div>
+                  <span className="text-sm font-semibold text-brand-700">{fmtPln(Number(t.amountPln))}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Transfer form */}
+          {showTransfer && otherUser && (
+            <div className="bg-brand-50 rounded-2xl p-3 mb-3 space-y-2">
+              <p className="text-xs font-semibold text-brand-900">Transfer to {otherUser.name}</p>
+              <div className="flex gap-2">
+                <input type="number" inputMode="decimal" value={transferAmount}
+                  onChange={e => setTransferAmount(e.target.value)}
+                  placeholder="Amount PLN" min="0" step="0.01"
+                  className="flex-1 bg-white border border-brand-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400" />
+              </div>
+              <input value={transferNote} onChange={e => setTransferNote(e.target.value)}
+                placeholder="Note (optional)" maxLength={80}
+                className="w-full bg-white border border-brand-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400" />
+              <div className="flex gap-2">
+                <button onClick={handleTransfer} disabled={busy || !transferAmount || parseFloat(transferAmount) <= 0}
+                  className="flex-1 bg-brand-600 text-white py-2 rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:opacity-50 transition-colors">
+                  {busy ? 'Sending…' : `Transfer ${transferAmount ? fmtPln(parseFloat(transferAmount)) : ''}`}
+                </button>
+                <button onClick={() => { setShowTransfer(false); setTransferAmount(''); setTransferNote(''); }}
+                  className="px-3 py-2 rounded-xl text-sm text-gray-500 hover:bg-white border border-brand-200">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {expenses.length === 0 && transfers.length === 0 && <p className="text-sm text-gray-500">No activity this month.</p>}
           {expenses.map((e) => (
             <button key={e.id} onClick={() => setEditingExpense(e)}
               className="w-full text-left flex items-center justify-between p-2 rounded hover:bg-brand-50 gap-2">
@@ -131,9 +226,15 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
 
         <div className="p-4 border-t space-y-2">
           <button onClick={() => setAddingExpense(true)}
-            className="w-full bg-brand-600 text-white py-2 rounded-xl text-sm font-semibold hover:bg-brand-700">
+            className="w-full bg-brand-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-brand-700 transition-colors">
             + Add Expense
           </button>
+          {!jar.isPersonal && otherUser && !showTransfer && (
+            <button onClick={() => setShowTransfer(true)}
+              className="w-full bg-brand-50 border border-brand-200 text-brand-700 py-3 rounded-xl text-sm font-semibold hover:bg-brand-100 transition-colors">
+              Transfer to {otherUser.name}
+            </button>
+          )}
           {user?.role === 'ADMIN' && !confirmArchive && (
             <button onClick={() => setConfirmArchive(true)}
               className="w-full bg-brand-50 border border-brand-200 text-brand-700 py-3 rounded-xl font-semibold text-sm hover:bg-brand-50">
