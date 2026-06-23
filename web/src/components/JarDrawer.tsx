@@ -35,11 +35,24 @@ interface Transfer {
   date: string;
 }
 
+interface TopUp {
+  id: number;
+  user: { id: number; name: string };
+  amountPln: number;
+  note?: string;
+  date: string;
+}
+
 export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props) {
   const { user } = useAuth();
   const { addToast } = useToast();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [transfers, setTransfers] = useState<Transfer[]>([]);
+  const [topUps, setTopUps] = useState<TopUp[]>([]);
+  const [showTopUp, setShowTopUp] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState('');
+  const [topUpNote, setTopUpNote] = useState('');
+  const [topUpUserId, setTopUpUserId] = useState<number | null>(null);
   const [addingExpense, setAddingExpense] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [confirmArchive, setConfirmArchive] = useState(false);
@@ -57,6 +70,7 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
   const loadData = () => {
     api.get<Expense[]>(`/expenses?jarId=${jar.id}`).then(setExpenses);
     api.get<Transfer[]>(`/transfers?jarId=${jar.id}&month=${month}`).then(setTransfers);
+    api.get<TopUp[]>(`/top-ups?jarId=${jar.id}&month=${month}`).then(setTopUps);
   };
 
   useEffect(() => {
@@ -83,6 +97,40 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
       setShowTransfer(false);
       setTransferAmount('');
       setTransferNote('');
+      loadData();
+      onRefresh();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleTopUp = async () => {
+    if (!topUpAmount || parseFloat(topUpAmount) <= 0) return;
+    setBusy(true);
+    try {
+      const body: Record<string, unknown> = {
+        jarId: jar.id,
+        amountPln: parseFloat(topUpAmount),
+        note: topUpNote || null,
+      };
+      if (topUpUserId && user?.role === 'ADMIN') body.userId = topUpUserId;
+      await api.post('/top-ups', body);
+      addToast(`Added ${fmtPln(parseFloat(topUpAmount))} to ${jar.name}`, true);
+      setShowTopUp(false);
+      setTopUpAmount('');
+      setTopUpNote('');
+      setTopUpUserId(null);
+      loadData();
+      onRefresh();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDeleteTopUp = async (id: number) => {
+    setBusy(true);
+    try {
+      await api.delete(`/top-ups/${id}`);
       loadData();
       onRefresh();
     } finally {
@@ -209,7 +257,66 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
             </div>
           )}
 
-          {expenses.length === 0 && transfers.length === 0 && <p className="text-sm text-gray-500">No activity this month.</p>}
+          {/* Top-ups this month */}
+          {topUps.length > 0 && (
+            <div className="mb-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Extra contributions</p>
+              {topUps.map(t => (
+                <div key={t.id} className="flex items-center justify-between p-2 rounded-xl bg-green-50 mb-1">
+                  <div className="text-xs flex-1 min-w-0">
+                    <span className="font-semibold text-green-900">{t.user.name}</span>
+                    {t.note && <span className="text-gray-500"> · {t.note}</span>}
+                    <span className="text-gray-400 ml-1">· {new Date(t.date).toLocaleDateString('en-GB')}</span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-sm font-semibold text-green-700">+{fmtPln(Number(t.amountPln))}</span>
+                    {(t.user.id === user?.id || user?.role === 'ADMIN') && (
+                      <button onClick={() => handleDeleteTopUp(t.id)} disabled={busy}
+                        className="text-gray-400 hover:text-red-500 text-lg leading-none">×</button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Top-up form */}
+          {showTopUp && (
+            <div className="bg-green-50 rounded-2xl p-3 mb-3 space-y-2">
+              <p className="text-xs font-semibold text-green-900">Add extra contribution to {jar.name}</p>
+              {user?.role === 'ADMIN' && otherUser && (
+                <div className="flex gap-2">
+                  <button onClick={() => setTopUpUserId(null)}
+                    className={`flex-1 py-1.5 rounded-xl text-xs font-semibold border transition-colors ${topUpUserId === null ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-600 border-green-200 hover:bg-green-50'}`}>
+                    Mine
+                  </button>
+                  <button onClick={() => setTopUpUserId(otherUser.id)}
+                    className={`flex-1 py-1.5 rounded-xl text-xs font-semibold border transition-colors ${topUpUserId !== null ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-600 border-green-200 hover:bg-green-50'}`}>
+                    {otherUser.name}'s
+                  </button>
+                </div>
+              )}
+              <input type="number" inputMode="decimal" value={topUpAmount}
+                onChange={e => setTopUpAmount(e.target.value)}
+                placeholder="Amount PLN" min="0" step="0.01"
+                className="w-full bg-white border border-green-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400" />
+              <input value={topUpNote} onChange={e => setTopUpNote(e.target.value)}
+                placeholder="Note — e.g. cash reimbursement (optional)" maxLength={80}
+                className="w-full bg-white border border-green-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400" />
+              <div className="flex gap-2">
+                <button onClick={handleTopUp} disabled={busy || !topUpAmount || parseFloat(topUpAmount) <= 0}
+                  className="flex-1 bg-green-600 text-white py-2 rounded-xl text-sm font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors">
+                  {busy ? 'Saving…' : `Add ${topUpAmount ? fmtPln(parseFloat(topUpAmount)) : ''}`}
+                </button>
+                <button onClick={() => { setShowTopUp(false); setTopUpAmount(''); setTopUpNote(''); setTopUpUserId(null); }}
+                  className="px-3 py-2 rounded-xl text-sm text-gray-500 hover:bg-white border border-green-200">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {expenses.length === 0 && transfers.length === 0 && topUps.length === 0 && <p className="text-sm text-gray-500">No activity this month.</p>}
           {expenses.map((e) => (
             <button key={e.id} onClick={() => setEditingExpense(e)}
               className="w-full text-left flex items-center justify-between p-2 rounded hover:bg-brand-50 gap-2">
@@ -229,8 +336,14 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
             className="w-full bg-brand-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-brand-700 transition-colors">
             + Add Expense
           </button>
+          {!showTopUp && (
+            <button onClick={() => { setShowTopUp(true); setShowTransfer(false); }}
+              className="w-full bg-green-50 border border-green-200 text-green-700 py-3 rounded-xl text-sm font-semibold hover:bg-green-100 transition-colors">
+              + Add extra contribution
+            </button>
+          )}
           {!jar.isPersonal && otherUser && !showTransfer && (
-            <button onClick={() => setShowTransfer(true)}
+            <button onClick={() => { setShowTransfer(true); setShowTopUp(false); }}
               className="w-full bg-brand-50 border border-brand-200 text-brand-700 py-3 rounded-xl text-sm font-semibold hover:bg-brand-100 transition-colors">
               Transfer to {otherUser.name}
             </button>

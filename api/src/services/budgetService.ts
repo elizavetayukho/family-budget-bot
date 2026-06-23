@@ -145,10 +145,20 @@ export async function calculateDashboard(requestingUserId: number): Promise<Dash
   const sharedJarBalances: JarBalance[] = [];
 
   for (const jar of jars.filter((j) => !j.isPersonal)) {
-    const expenses = await prisma.expense.findMany({
-      where: { jarId: jar.id, date: { gte: startOfMonth, lt: endOfMonth } },
-    });
+    const [expenses, transfers, topUps] = await Promise.all([
+      prisma.expense.findMany({
+        where: { jarId: jar.id, date: { gte: startOfMonth, lt: endOfMonth } },
+      }),
+      prisma.jarTransfer.findMany({
+        where: { jarId: jar.id, date: { gte: startOfMonth, lt: endOfMonth } },
+      }),
+      prisma.jarTopUp.findMany({
+        where: { jarId: jar.id, date: { gte: startOfMonth, lt: endOfMonth } },
+      }),
+    ]);
+
     const totalSpending = expenses.reduce((s, e) => s + Number(e.amountPln), 0);
+    const totalTopUps = topUps.reduce((s, t) => s + Number(t.amountPln), 0);
 
     const carry = carryForwards.find((c) => c.jarId === jar.id);
     const carryForward = carry ? Number(carry.amount) : 0;
@@ -161,17 +171,19 @@ export async function calculateDashboard(requestingUserId: number): Promise<Dash
     const openingBalanceLiz = Number(j.openingBalanceLiz ?? 0);
     const openingBalanceEdgar = Number(j.openingBalanceEdgar ?? 0);
     const totalOpeningBalance = openingBalanceLiz + openingBalanceEdgar;
-    const balance = totalContribution - totalSpending + carryForward + totalOpeningBalance;
+    const balance = totalContribution - totalSpending + carryForward + totalOpeningBalance + totalTopUps;
 
     // Transfers within this jar this month
-    const transfers = await prisma.jarTransfer.findMany({
-      where: { jarId: jar.id, date: { gte: startOfMonth, lt: endOfMonth } },
-    });
     const transfersOut = transfers
       .filter(t => t.fromUserId === requestingUserId)
       .reduce((s, t) => s + Number(t.amountPln), 0);
     const transfersIn = transfers
       .filter(t => t.toUserId === requestingUserId)
+      .reduce((s, t) => s + Number(t.amountPln), 0);
+
+    // Top-ups for requesting user
+    const myTopUps = topUps
+      .filter(t => t.userId === requestingUserId)
       .reduce((s, t) => s + Number(t.amountPln), 0);
 
     // Per-requesting-user share — use actual spending by this user, not proportional
@@ -180,7 +192,7 @@ export async function calculateDashboard(requestingUserId: number): Promise<Dash
     const mySpendingShare = expenses
       .filter(e => e.userId === requestingUserId)
       .reduce((s, e) => s + Number(e.amountPln), 0);
-    const myBalance = myContribution - mySpendingShare + myOpeningBalance + transfersIn - transfersOut;
+    const myBalance = myContribution - mySpendingShare + myOpeningBalance + transfersIn - transfersOut + myTopUps;
 
     sharedJarBalances.push({
       id: jar.id,
