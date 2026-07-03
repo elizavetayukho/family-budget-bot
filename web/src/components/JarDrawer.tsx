@@ -76,13 +76,13 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
 
   useEffect(() => {
     loadData();
-    // Fetch the other user to know who to transfer to
+    if (!user?.id) return;
     api.get<{ users: { id: number; name: string; role: string }[] }>('/dashboard/summary')
       .then(s => {
-        const other = s.users.find(u => u.id !== user?.id);
+        const other = s.users.find(u => u.id !== user.id);
         if (other) setOtherUser({ id: other.id, name: other.name });
       });
-  }, [jar.id]);
+  }, [jar.id, user?.id]);
 
   const handleTransfer = async () => {
     if (!otherUser || !transferAmount || parseFloat(transferAmount) <= 0) return;
