@@ -24,7 +24,9 @@ interface DashboardState {
   sharedJars: JarBalance[]; uncategorisedCount: number;
 }
 
-interface Snapshot { month: string; carryForwards: { name: string; amount: number }[] }
+interface JarPersonSummary { jarId: number; name: string; contribution: number; spending: number; net: number }
+interface PersonSummary { userId: number; name: string; income: number; totalContribution: number; totalSpending: number; net: number; jars: JarPersonSummary[] }
+interface Snapshot { month: string; carryForwards: { name: string; amount: number }[]; personSummary?: PersonSummary[] }
 
 type Tab = 'overview' | 'lizaveta' | 'edgar';
 
@@ -53,10 +55,16 @@ export default function Dashboard() {
       if (snapRes.length > 0) {
         const latest = snapRes[0];
         if (latest.month !== data.month) {
-          const snap = await api.get<Snapshot & { carryForwards: { jarId: number; amount: number; name: string }[] }>(`/history/snapshots/${latest.month}`).catch(() => null);
+          const snap = await api.get<Snapshot & { carryForwards: { jarId: number; amount: number; name: string }[]; personSummary: PersonSummary[] }>(`/history/snapshots/${latest.month}`).catch(() => null);
           if (snap) {
             const nonZero = snap.carryForwards.filter((c) => Number(c.amount) !== 0);
-            if (nonZero.length > 0) setResetCard({ month: snap.month, carryForwards: nonZero.map((c) => ({ name: c.name, amount: Number(c.amount) })) });
+            if (nonZero.length > 0 || snap.personSummary?.length) {
+              setResetCard({
+                month: snap.month,
+                carryForwards: nonZero.map((c) => ({ name: c.name, amount: Number(c.amount) })),
+                personSummary: snap.personSummary,
+              });
+            }
           }
         }
       }
@@ -224,20 +232,60 @@ export default function Dashboard() {
 
       {/* Reset summary card */}
       {resetCard && !resetDismissed && (
-        <div className="bg-brand-100 rounded-2xl p-4 flex items-start justify-between">
-          <p className="text-sm text-brand-700 font-medium">
-            {resetCard.month} wrapped.{' '}
-            {resetCard.carryForwards.map((c, i) => (
-              <span key={i}>
-                {c.name} <span className={c.amount > 0 ? 'text-green-700' : 'text-red-500'}>
-                  {c.amount > 0 ? '+' : ''}{c.amount.toFixed(2)} PLN
+        <div className="bg-brand-50 border border-brand-100 rounded-2xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-brand-900">{resetCard.month} wrapped</p>
+            <button onClick={() => { setResetDismissed(true); localStorage.setItem('resetDismissed', new Date().toISOString().slice(0, 7)); }}
+              className="text-gray-400 hover:text-brand-700 text-lg leading-none">✕</button>
+          </div>
+          {resetCard.personSummary && resetCard.personSummary.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {resetCard.personSummary.map(p => (
+                <div key={p.userId} className="bg-white rounded-xl p-3 space-y-2">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{p.name}</p>
+                  <div className="space-y-1 text-xs text-gray-600">
+                    <div className="flex justify-between">
+                      <span>Contributed</span>
+                      <span className="font-medium text-brand-900">{fmtPln(p.totalContribution)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Spent</span>
+                      <span className="font-medium text-brand-900">{fmtPln(p.totalSpending)}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-brand-50 pt-1 font-semibold">
+                      <span>Net</span>
+                      <span className={p.net >= 0 ? 'text-green-600' : 'text-red-500'}>
+                        {p.net >= 0 ? '+' : ''}{fmtPln(p.net)}
+                      </span>
+                    </div>
+                  </div>
+                  {p.jars.filter(j => Math.abs(j.net) > 0.01).length > 0 && (
+                    <div className="border-t border-brand-50 pt-2 space-y-0.5">
+                      {p.jars.filter(j => Math.abs(j.net) > 0.01).map(j => (
+                        <div key={j.jarId} className="flex justify-between text-xs text-gray-500">
+                          <span>{j.name}</span>
+                          <span className={j.net >= 0 ? 'text-green-600 font-medium' : 'text-red-500 font-medium'}>
+                            {j.net >= 0 ? '+' : ''}{fmtPln(j.net)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-brand-700">
+              {resetCard.carryForwards.map((c, i) => (
+                <span key={i}>
+                  {c.name} <span className={c.amount > 0 ? 'text-green-700' : 'text-red-500'}>
+                    {c.amount > 0 ? '+' : ''}{fmtPln(c.amount)}
+                  </span>
+                  {i < resetCard.carryForwards.length - 1 ? ' · ' : ''}
                 </span>
-                {i < resetCard.carryForwards.length - 1 ? ' · ' : ''}
-              </span>
-            ))}
-          </p>
-          <button onClick={() => { setResetDismissed(true); localStorage.setItem('resetDismissed', new Date().toISOString().slice(0, 7)); }}
-            className="text-gray-500 hover:text-brand-700 ml-4 shrink-0">✕</button>
+              ))}
+            </p>
+          )}
         </div>
       )}
 
