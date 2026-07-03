@@ -8,6 +8,7 @@ interface Jar {
   id: number; name: string; percent: number; status: string;
   archivedAt?: string; isPersonal: boolean; isFood: boolean;
   openingBalanceLiz?: number; openingBalanceEdgar?: number;
+  fixedAmountPln?: number | null;
 }
 
 export default function Jars() {
@@ -24,8 +25,9 @@ export default function Jars() {
   const [editOpeningEdgar, setEditOpeningEdgar] = useState<Record<number, string>>({});
   const [confirmArchive, setConfirmArchive] = useState<number | null>(null);
   const [confirmRestore, setConfirmRestore] = useState<number | null>(null);
-  const [newJar, setNewJar] = useState({ name: '', percent: '' });
+  const [newJar, setNewJar] = useState({ name: '', mode: 'percent' as 'percent' | 'fixed', percent: '', fixed: '' });
   const [addingJar, setAddingJar] = useState(false);
+  const [editFixed, setEditFixed] = useState<Record<number, string>>({});
   const [busy, setBusy] = useState(false);
 
   const load = async () => {
@@ -39,16 +41,19 @@ export default function Jars() {
     const names: Record<number, string> = {};
     const openingLiz: Record<number, string> = {};
     const openingEdgar: Record<number, string> = {};
+    const fixedAmounts: Record<number, string> = {};
     active.forEach((j) => {
       percents[j.id] = String(j.percent);
       names[j.id] = j.name;
       openingLiz[j.id] = j.openingBalanceLiz != null && Number(j.openingBalanceLiz) !== 0 ? String(j.openingBalanceLiz) : '';
       openingEdgar[j.id] = j.openingBalanceEdgar != null && Number(j.openingBalanceEdgar) !== 0 ? String(j.openingBalanceEdgar) : '';
+      fixedAmounts[j.id] = j.fixedAmountPln != null ? String(j.fixedAmountPln) : '';
     });
     setEditPercents(percents);
     setEditNames(names);
     setEditOpeningLiz(openingLiz);
     setEditOpeningEdgar(openingEdgar);
+    setEditFixed(fixedAmounts);
   };
 
   useEffect(() => { load(); }, []);
@@ -60,11 +65,14 @@ export default function Jars() {
     setBusy(true);
     try {
       for (const j of jars.filter((j) => !j.isPersonal)) {
+        const fixedVal = editFixed[j.id];
+        const isFixed = j.isFood || (j.fixedAmountPln != null && fixedVal !== '');
         await api.patch(`/jars/${j.id}`, {
           name: editNames[j.id] ?? j.name,
-          percent: parseFloat(editPercents[j.id] ?? '0') || 0,
+          percent: isFixed ? 0 : parseFloat(editPercents[j.id] ?? '0') || 0,
           openingBalanceLiz: parseFloat(editOpeningLiz[j.id] ?? '0') || 0,
           openingBalanceEdgar: parseFloat(editOpeningEdgar[j.id] ?? '0') || 0,
+          fixedAmountPln: isFixed ? (parseFloat(fixedVal) || null) : null,
         });
       }
       addToast('Saved. Changes apply from next reset.');
@@ -78,9 +86,15 @@ export default function Jars() {
     if (!newJar.name.trim()) return;
     setBusy(true);
     try {
-      await api.post('/jars', { name: newJar.name.trim(), percent: parseFloat(newJar.percent) || 0 });
+      const body: Record<string, unknown> = { name: newJar.name.trim() };
+      if (newJar.mode === 'fixed') {
+        body.fixedAmountPln = parseFloat(newJar.fixed) || 0;
+      } else {
+        body.percent = parseFloat(newJar.percent) || 0;
+      }
+      await api.post('/jars', body);
       addToast('Saved. Changes apply from next reset.');
-      setNewJar({ name: '', percent: '' });
+      setNewJar({ name: '', mode: 'percent', percent: '', fixed: '' });
       setAddingJar(false);
       await load();
     } finally {
@@ -120,27 +134,57 @@ export default function Jars() {
       </div>
 
       {addingJar && isAdmin && (
-        <div className="bg-white rounded-2xl shadow-sm border border-brand-100 p-4 flex gap-3 items-end">
-          <div className="flex-1">
+        <div className="bg-white rounded-2xl shadow-sm border border-brand-100 p-4 space-y-3">
+          <div>
             <label className="block text-xs text-gray-500 mb-1">Jar name</label>
             <input value={newJar.name} onChange={(e) => setNewJar((p) => ({ ...p, name: e.target.value }))}
               placeholder="e.g. Clothing" autoFocus
               className="w-full border border-brand-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
           </div>
-          <div className="w-28">
-            <label className="block text-xs text-gray-500 mb-1">% of discretionary</label>
-            <input type="number" value={newJar.percent} onChange={(e) => setNewJar((p) => ({ ...p, percent: e.target.value }))}
-              placeholder="0" min="0" max="100" step="0.5"
-              className="w-full border border-brand-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+          <div>
+            <label className="block text-xs text-gray-500 mb-2">Allocation type</label>
+            <div className="flex gap-2 bg-brand-50 rounded-xl p-1 w-fit">
+              <button onClick={() => setNewJar((p) => ({ ...p, mode: 'percent' }))}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${newJar.mode === 'percent' ? 'bg-white text-brand-800 shadow-sm' : 'text-gray-500 hover:text-brand-700'}`}>
+                % of salary
+              </button>
+              <button onClick={() => setNewJar((p) => ({ ...p, mode: 'fixed' }))}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${newJar.mode === 'fixed' ? 'bg-white text-brand-800 shadow-sm' : 'text-gray-500 hover:text-brand-700'}`}>
+                Fixed PLN
+              </button>
+            </div>
           </div>
-          <button onClick={doAddJar} disabled={busy || !newJar.name.trim()}
-            className="bg-brand-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:opacity-50">
-            {busy ? 'Saving…' : 'Save'}
-          </button>
-          <button onClick={() => { setAddingJar(false); setNewJar({ name: '', percent: '' }); }}
-            className="text-sm text-gray-500 hover:text-gray-700 pb-0.5">
-            Cancel
-          </button>
+          <div className="flex gap-3 items-end">
+            {newJar.mode === 'percent' ? (
+              <div className="w-40">
+                <label className="block text-xs text-gray-500 mb-1">% of discretionary income</label>
+                <div className="flex items-center border border-brand-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-brand-500">
+                  <input type="number" value={newJar.percent} onChange={(e) => setNewJar((p) => ({ ...p, percent: e.target.value }))}
+                    placeholder="0" min="0" max="100" step="0.5"
+                    className="flex-1 px-3 py-2.5 text-sm outline-none w-0" />
+                  <span className="pr-3 text-gray-400 text-sm">%</span>
+                </div>
+              </div>
+            ) : (
+              <div className="w-48">
+                <label className="block text-xs text-gray-500 mb-1">Fixed amount per person / month</label>
+                <div className="flex items-center border border-brand-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-brand-500">
+                  <input type="number" value={newJar.fixed} onChange={(e) => setNewJar((p) => ({ ...p, fixed: e.target.value }))}
+                    placeholder="0" min="0" step="1"
+                    className="flex-1 px-3 py-2.5 text-sm outline-none w-0" />
+                  <span className="pr-3 text-gray-400 text-sm">PLN</span>
+                </div>
+              </div>
+            )}
+            <button onClick={doAddJar} disabled={busy || !newJar.name.trim()}
+              className="bg-brand-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:opacity-50">
+              {busy ? 'Saving…' : 'Add jar'}
+            </button>
+            <button onClick={() => { setAddingJar(false); setNewJar({ name: '', mode: 'percent', percent: '', fixed: '' }); }}
+              className="text-sm text-gray-500 hover:text-gray-700">
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
@@ -182,10 +226,20 @@ export default function Jars() {
                       {j.isPersonal && <span className="ml-2 text-xs text-gray-400">Remainder</span>}
                     </td>
                     <td className="px-4 py-2 text-right">
-                      {isAdmin && !j.isFood && !j.isPersonal ? (
-                        <input type="number" value={editPercents[j.id] ?? ''} min="0" max="100" step="0.5"
-                          onChange={(e) => setEditPercents((p) => ({ ...p, [j.id]: e.target.value }))}
-                          className="w-16 text-right border-b border-brand-100 focus:border-brand-500 outline-none text-sm" />
+                      {isAdmin && !j.isPersonal && (j.isFood || j.fixedAmountPln != null) ? (
+                        <div className="flex items-center justify-end gap-1">
+                          <input type="number" value={editFixed[j.id] ?? ''} min="0" step="1"
+                            onChange={(e) => setEditFixed((p) => ({ ...p, [j.id]: e.target.value }))}
+                            className="w-20 text-right border-b border-brand-100 focus:border-brand-500 outline-none text-sm" />
+                          <span className="text-xs text-gray-400">PLN/person</span>
+                        </div>
+                      ) : isAdmin && !j.isFood && !j.isPersonal ? (
+                        <div className="flex items-center justify-end gap-1">
+                          <input type="number" value={editPercents[j.id] ?? ''} min="0" max="100" step="0.5"
+                            onChange={(e) => setEditPercents((p) => ({ ...p, [j.id]: e.target.value }))}
+                            className="w-16 text-right border-b border-brand-100 focus:border-brand-500 outline-none text-sm" />
+                          <span className="text-xs text-gray-400">%</span>
+                        </div>
                       ) : (
                         <span>{j.isPersonal ? 'Remainder' : j.isFood ? '—' : `${j.percent}%`}</span>
                       )}
@@ -255,7 +309,15 @@ export default function Jars() {
                   <button onClick={() => setConfirmArchive(j.id)} className="text-xs text-gray-500 hover:text-red-500 min-h-[44px] px-2">Archive</button>
                 )}
               </div>
-              {!j.isFood && !j.isPersonal && isAdmin && (
+              {!j.isPersonal && isAdmin && (j.isFood || j.fixedAmountPln != null) && (
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-gray-500">Fixed PLN per person</span>
+                  <input type="number" value={editFixed[j.id] ?? ''} min="0" step="1"
+                    onChange={(e) => setEditFixed((p) => ({ ...p, [j.id]: e.target.value }))}
+                    className="w-24 text-right border border-brand-200 rounded-xl px-3 py-2 text-sm" />
+                </div>
+              )}
+              {!j.isFood && !j.isPersonal && j.fixedAmountPln == null && isAdmin && (
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-gray-500">% of discretionary</span>
                   <input type="number" value={editPercents[j.id] ?? ''} min="0" max="100" step="0.5"
@@ -263,7 +325,6 @@ export default function Jars() {
                     className="w-20 text-right border border-brand-200 rounded-xl px-3 py-2 text-sm" />
                 </div>
               )}
-              {j.isFood && <span className="text-xs text-gray-500">Fixed 2 000 PLN</span>}
               {j.isPersonal && <span className="text-xs text-gray-500">Remainder after all jars</span>}
               {confirmArchive === j.id && (
                 <div className="bg-amber-50 rounded-xl p-3 text-sm text-amber-800">

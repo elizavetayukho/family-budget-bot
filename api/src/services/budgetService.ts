@@ -109,14 +109,16 @@ export async function calculateDashboard(requestingUserId: number): Promise<Dash
     let totalContributions = 0;
 
     for (const jar of sharedJars) {
-      const contrib = (discretionary * Number(jar.percent)) / 100;
+      const fixed = (jar as { fixedAmountPln?: unknown }).fixedAmountPln;
+      const contrib = fixed != null ? Number(fixed) : (discretionary * Number(jar.percent)) / 100;
       jarContributions[jar.id] = contrib;
       totalContributions += contrib;
     }
 
     const foodJar = jars.find((j) => j.isFood);
     if (foodJar) {
-      jarContributions[foodJar.id] = 1000; // each person pays 1000
+      const fixed = (foodJar as { fixedAmountPln?: unknown }).fixedAmountPln;
+      jarContributions[foodJar.id] = fixed != null ? Number(fixed) : 1000;
     }
 
     const personalJarBalance = discretionary - totalContributions;

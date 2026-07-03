@@ -16,13 +16,19 @@ router.get('/archived', requireAuth, async (_req, res) => {
 });
 
 router.post('/', requireAuth, requireAdmin, async (req, res) => {
-  const { name, percent = 0 } = req.body;
-  const jar = await prisma.jar.create({ data: { name, percent } });
+  const { name, percent = 0, fixedAmountPln } = req.body;
+  const jar = await prisma.jar.create({
+    data: {
+      name,
+      percent: fixedAmountPln != null ? 0 : percent,
+      fixedAmountPln: fixedAmountPln != null ? Number(fixedAmountPln) : null,
+    },
+  });
   res.status(201).json(jar);
 });
 
 router.patch('/:id', requireAuth, requireAdmin, async (req, res) => {
-  const { name, percent, openingBalanceLiz, openingBalanceEdgar } = req.body;
+  const { name, percent, openingBalanceLiz, openingBalanceEdgar, fixedAmountPln } = req.body;
   const jar = await prisma.jar.update({
     where: { id: Number(req.params.id) },
     data: {
@@ -30,6 +36,8 @@ router.patch('/:id', requireAuth, requireAdmin, async (req, res) => {
       ...(percent !== undefined ? { percent } : {}),
       ...(openingBalanceLiz !== undefined ? { openingBalanceLiz } : {}),
       ...(openingBalanceEdgar !== undefined ? { openingBalanceEdgar } : {}),
+      // null clears fixed mode (back to %), a number sets fixed mode
+      ...(fixedAmountPln !== undefined ? { fixedAmountPln: fixedAmountPln === null ? null : Number(fixedAmountPln) } : {}),
     },
   });
   res.json(jar);
