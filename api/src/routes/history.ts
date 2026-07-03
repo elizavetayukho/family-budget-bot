@@ -50,8 +50,8 @@ function computePersonSummary(data: any) {
       return { jarId: jar.id, name: jar.name, contribution, spending, net: contribution - spending };
     });
 
-    const totalContribution = jarSummaries.reduce((s: number, j) => s + j.contribution, 0);
-    const totalSpending = jarSummaries.reduce((s: number, j) => s + j.spending, 0);
+    const totalContribution = jarSummaries.reduce((s: number, j: any) => s + j.contribution, 0);
+    const totalSpending = jarSummaries.reduce((s: number, j: any) => s + j.spending, 0);
 
     return {
       userId: user.id,
