@@ -59,6 +59,7 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
   const [showTransfer, setShowTransfer] = useState(false);
   const [transferAmount, setTransferAmount] = useState('');
   const [transferNote, setTransferNote] = useState('');
+  const [transferFromMe, setTransferFromMe] = useState(true); // true = me→other, false = other→me (admin only)
   const [otherUser, setOtherUser] = useState<{ id: number; name: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -87,16 +88,21 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
     if (!otherUser || !transferAmount || parseFloat(transferAmount) <= 0) return;
     setBusy(true);
     try {
+      const fromId = transferFromMe ? user!.id : otherUser.id;
+      const toId = transferFromMe ? otherUser.id : user!.id;
       await api.post('/transfers', {
-        toUserId: otherUser.id,
+        fromUserId: fromId,
+        toUserId: toId,
         jarId: jar.id,
         amountPln: parseFloat(transferAmount),
         note: transferNote || null,
       });
-      addToast(`Transferred ${fmtPln(parseFloat(transferAmount))} to ${otherUser.name}`, true);
+      const fromName = transferFromMe ? 'your' : `${otherUser.name}'s`;
+      addToast(`Transferred ${fmtPln(parseFloat(transferAmount))} from ${fromName} share`, true);
       setShowTransfer(false);
       setTransferAmount('');
       setTransferNote('');
+      setTransferFromMe(true);
       loadData();
       onRefresh();
     } finally {
@@ -234,7 +240,19 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
           {/* Transfer form */}
           {showTransfer && otherUser && (
             <div className="bg-brand-50 rounded-2xl p-3 mb-3 space-y-2">
-              <p className="text-xs font-semibold text-brand-900">Transfer to {otherUser.name}</p>
+              <p className="text-xs font-semibold text-brand-900">Transfer share</p>
+              {user?.role === 'ADMIN' && (
+                <div className="flex gap-2">
+                  <button onClick={() => setTransferFromMe(true)}
+                    className={`flex-1 py-1.5 rounded-xl text-xs font-semibold border transition-colors ${transferFromMe ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-600 border-brand-200 hover:bg-brand-50'}`}>
+                    My share → {otherUser.name}
+                  </button>
+                  <button onClick={() => setTransferFromMe(false)}
+                    className={`flex-1 py-1.5 rounded-xl text-xs font-semibold border transition-colors ${!transferFromMe ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-600 border-brand-200 hover:bg-brand-50'}`}>
+                    {otherUser.name} → My share
+                  </button>
+                </div>
+              )}
               <div className="flex gap-2">
                 <input type="number" inputMode="decimal" value={transferAmount}
                   onChange={e => setTransferAmount(e.target.value)}
@@ -249,7 +267,7 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
                   className="flex-1 bg-brand-600 text-white py-2 rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:opacity-50 transition-colors">
                   {busy ? 'Sending…' : `Transfer ${transferAmount ? fmtPln(parseFloat(transferAmount)) : ''}`}
                 </button>
-                <button onClick={() => { setShowTransfer(false); setTransferAmount(''); setTransferNote(''); }}
+                <button onClick={() => { setShowTransfer(false); setTransferAmount(''); setTransferNote(''); setTransferFromMe(true); }}
                   className="px-3 py-2 rounded-xl text-sm text-gray-500 hover:bg-white border border-brand-200">
                   Cancel
                 </button>

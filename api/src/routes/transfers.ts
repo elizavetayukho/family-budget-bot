@@ -6,17 +6,23 @@ const router = Router();
 const prisma = new PrismaClient();
 
 router.post('/', requireAuth, async (req, res) => {
-  const { toUserId, jarId, amountPln, note } = req.body;
+  const { toUserId, jarId, amountPln, note, fromUserId } = req.body;
   if (!toUserId || !jarId || !amountPln || amountPln <= 0) {
     return res.status(400).json({ error: 'toUserId, jarId and a positive amountPln are required' });
   }
-  if (Number(toUserId) === req.user!.id) {
+
+  // Admin can specify fromUserId to transfer on behalf of the other person
+  const resolvedFromUserId = req.user!.role === 'ADMIN' && fromUserId
+    ? Number(fromUserId)
+    : req.user!.id;
+
+  if (Number(toUserId) === resolvedFromUserId) {
     return res.status(400).json({ error: 'Cannot transfer to yourself' });
   }
 
   const transfer = await prisma.jarTransfer.create({
     data: {
-      fromUserId: req.user!.id,
+      fromUserId: resolvedFromUserId,
       toUserId: Number(toUserId),
       jarId: Number(jarId),
       amountPln: Number(amountPln),

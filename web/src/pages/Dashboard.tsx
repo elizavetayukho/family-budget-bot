@@ -38,7 +38,7 @@ export default function Dashboard() {
   const [nettoInput, setNettoInput] = useState('');
   const [savingNetto, setSavingNetto] = useState(false);
   const [resetCard, setResetCard] = useState<Snapshot | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [activeTab, setActiveTab] = useState<Tab>('lizaveta');
   const [resetDismissed, setResetDismissed] = useState(
     () => localStorage.getItem('resetDismissed') === new Date().toISOString().slice(0, 7)
   );
@@ -88,9 +88,9 @@ export default function Dashboard() {
   const isBrutto = requesterPerson.incomeSource === 'brutto';
 
   const tabDefs: { key: Tab; label: string }[] = [
-    { key: 'overview', label: 'Overview' },
     { key: 'lizaveta', label: 'Lizaveta' },
     { key: 'edgar', label: 'Edgar' },
+    { key: 'overview', label: 'Overview' },
   ];
 
   // Per-person jar data: Liz = myContribution/mySpendingShare/myBalance (from API)
