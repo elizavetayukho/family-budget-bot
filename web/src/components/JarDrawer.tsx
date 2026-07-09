@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { fmtPln, fmtCurrency } from '../lib/format';
 import { useAuth } from '../context/AuthContext';
@@ -62,6 +63,7 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
   const [transferFromMe, setTransferFromMe] = useState(true); // true = me→other, false = other→me (admin only)
   const [otherUser, setOtherUser] = useState<{ id: number; name: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [shareExpanded, setShareExpanded] = useState(false);
 
   const month = (() => {
     const d = new Date();
@@ -160,62 +162,70 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
       {/* Backdrop */}
       <div className="fixed inset-0 z-30 bg-black/30" onClick={onClose} />
 
-      {/* Drawer — slides from right on desktop, slides up from bottom on mobile */}
+      {/* Drawer — full height on mobile, right panel on desktop */}
       <div className="fixed z-40 bg-white shadow-xl flex flex-col
-        bottom-0 left-0 right-0 rounded-t-3xl max-h-[90dvh]
-        sm:bottom-auto sm:top-0 sm:right-0 sm:left-auto sm:w-96 sm:h-full sm:rounded-none">
-        {/* Mobile drag handle */}
-        <div className="sm:hidden flex justify-center pt-3 pb-1 cursor-pointer" onClick={onClose}>
-          <div className="w-10 h-1 bg-brand-200 rounded-full" />
-        </div>
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold">{jar.name}</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl w-11 h-11 flex items-center justify-center">✕</button>
+        inset-0 sm:inset-auto sm:top-0 sm:right-0 sm:bottom-0 sm:w-96">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b">
+          <h2 className="text-base font-semibold text-brand-900">{jar.name}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-2xl w-10 h-10 flex items-center justify-center">✕</button>
         </div>
 
-        <div className="p-4 border-b space-y-3">
-          {/* Combined balance */}
-          <div>
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total pool</p>
-            <div className={`text-2xl font-bold ${jar.balance < 0 ? 'text-red-600' : 'text-gray-900'}`}>
-              {fmtPln(jar.balance)}
+        {/* Compact info strip — two numbers side by side, expandable breakdown */}
+        <div className="border-b">
+          {/* Summary row */}
+          <div className="px-4 py-3 flex items-center gap-6">
+            <div className="flex-1">
+              <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Pool</p>
+              <span className={`text-xl font-bold tabular-nums ${jar.balance < 0 ? 'text-red-600' : 'text-brand-900'}`}>
+                {fmtPln(jar.balance)}
+              </span>
             </div>
-            {jar.balance < 0 && (
-              <p className="text-xs text-red-500 mt-0.5">{fmtPln(Math.abs(jar.balance))} over — carried to next month</p>
-            )}
-            <div className="mt-2 h-1.5 bg-brand-100 rounded-full overflow-hidden">
-              <div className={`h-1.5 rounded-full ${jar.balance < 0 ? 'bg-red-400' : 'bg-blue-400'}`}
-                style={{ width: `${Math.min(100, jar.totalContribution > 0 ? (jar.totalSpending / jar.totalContribution) * 100 : 0)}%` }} />
+            <div className="flex-1">
+              <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Your share</p>
+              <span className={`text-xl font-bold tabular-nums ${jar.myBalance < 0 ? 'text-red-600' : 'text-brand-900'}`}>
+                {fmtPln(jar.myBalance)}
+              </span>
             </div>
-            <p className="text-xs text-gray-500 mt-1">{fmtPln(jar.totalSpending)} spent of {fmtPln(jar.totalContribution)} total</p>
-            {jar.openingBalance !== 0 && (
-              <p className={`text-xs mt-1 font-medium ${jar.openingBalance > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                Opening balance: {jar.openingBalance > 0 ? '+' : ''}{fmtPln(jar.openingBalance)}
-              </p>
-            )}
+            <button onClick={() => setShareExpanded(v => !v)}
+              className="text-gray-400 hover:text-brand-600 text-xs font-medium flex items-center gap-1 shrink-0">
+              {shareExpanded ? '▲' : '▼'}
+            </button>
           </div>
 
-          {/* Per-person breakdown */}
-          <div className="border-t pt-3">
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Your share</p>
-            <div className={`text-lg font-semibold ${jar.myBalance < 0 ? 'text-red-600' : 'text-gray-900'}`}>
-              {fmtPln(jar.myBalance)}
+          {/* Progress bar always visible */}
+          <div className="px-4 pb-2">
+            <div className="h-1.5 bg-brand-100 rounded-full overflow-hidden">
+              <div className={`h-1.5 rounded-full transition-all ${jar.balance < 0 ? 'bg-red-400' : 'bg-brand-500'}`}
+                style={{ width: `${Math.min(100, jar.totalContribution > 0 ? (jar.totalSpending / jar.totalContribution) * 100 : 0)}%` }} />
             </div>
-            <div className="mt-2 space-y-1 text-xs text-gray-500">
+            <p className="text-xs text-gray-400 mt-1">{fmtPln(jar.totalSpending)} spent of {fmtPln(jar.totalContribution)}</p>
+          </div>
+
+          {/* Expandable breakdown */}
+          {shareExpanded && (
+            <div className="px-4 pb-3 border-t pt-3 space-y-1 text-xs text-gray-500">
               <div className="flex justify-between">
-                <span>Your contribution this month</span>
+                <span>Your contribution</span>
                 <span className="font-medium text-gray-700">{fmtPln(jar.myContribution)}</span>
               </div>
               <div className="flex justify-between">
-                <span>Your spending this month</span>
+                <span>Your spending</span>
                 <span className="font-medium text-red-500">−{fmtPln(jar.mySpendingShare)}</span>
               </div>
-              <div className="flex justify-between border-t pt-1">
-                <span className="font-medium text-gray-700">Your remaining share</span>
-                <span className={`font-semibold ${jar.myBalance < 0 ? 'text-red-600' : 'text-gray-900'}`}>{fmtPln(jar.myBalance)}</span>
-              </div>
+              {jar.openingBalance !== 0 && (
+                <div className="flex justify-between">
+                  <span>Opening balance</span>
+                  <span className={`font-medium ${jar.openingBalance > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                    {jar.openingBalance > 0 ? '+' : ''}{fmtPln(jar.openingBalance)}
+                  </span>
+                </div>
+              )}
+              {jar.balance < 0 && (
+                <p className="text-red-400 pt-1">{fmtPln(Math.abs(jar.balance))} over — carried to next month</p>
+              )}
             </div>
-          </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
@@ -334,10 +344,12 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
             </div>
           )}
 
-          {expenses.length === 0 && transfers.length === 0 && topUps.length === 0 && <p className="text-sm text-gray-500">No activity this month.</p>}
+          {expenses.length === 0 && transfers.length === 0 && topUps.length === 0 && (
+            <p className="text-sm text-gray-500">No activity this month.</p>
+          )}
           {expenses.map((e) => (
             <button key={e.id} onClick={() => setEditingExpense(e)}
-              className="w-full text-left flex items-center justify-between p-2 rounded hover:bg-brand-50 gap-2">
+              className="w-full text-left flex items-center justify-between p-2 rounded-lg hover:bg-brand-50 gap-2">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{e.description || '—'}</p>
                 <p className="text-xs text-gray-500">{new Date(e.date).toLocaleDateString('en-GB')} · {e.user.name}</p>
@@ -347,30 +359,42 @@ export default function JarDrawer({ jar, onClose, onArchived, onRefresh }: Props
               </span>
             </button>
           ))}
+
+          {/* Full history link */}
+          <Link to={`/history?jarId=${jar.id}`} onClick={onClose}
+            className="flex items-center justify-center gap-1 py-2 text-xs font-medium text-brand-500 hover:text-brand-700 transition-colors">
+            View full history →
+          </Link>
         </div>
 
-        <div className="p-4 border-t space-y-2">
+        {/* Footer — primary action full-width, secondary actions in a compact row */}
+        <div className="p-3 border-t space-y-2">
           <button onClick={() => setAddingExpense(true)}
-            className="w-full bg-brand-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-brand-700 transition-colors">
-            + Add Expense
+            className="w-full bg-brand-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-700 transition-colors">
+            + Add expense
           </button>
-          {!showTopUp && (
-            <button onClick={() => { setShowTopUp(true); setShowTransfer(false); }}
-              className="w-full bg-green-50 border border-green-200 text-green-700 py-3 rounded-xl text-sm font-semibold hover:bg-green-100 transition-colors">
-              + Add extra contribution
-            </button>
-          )}
-          {!jar.isPersonal && otherUser && !showTransfer && (
-            <button onClick={() => { setShowTransfer(true); setShowTopUp(false); }}
-              className="w-full bg-brand-50 border border-brand-200 text-brand-700 py-3 rounded-xl text-sm font-semibold hover:bg-brand-100 transition-colors">
-              Transfer to {otherUser.name}
-            </button>
-          )}
-          {user?.role === 'ADMIN' && !confirmArchive && (
-            <button onClick={() => setConfirmArchive(true)}
-              className="w-full bg-brand-50 border border-brand-200 text-brand-700 py-3 rounded-xl font-semibold text-sm hover:bg-brand-50">
-              Archive jar
-            </button>
+          {/* Secondary actions row */}
+          {!showTopUp && !showTransfer && (
+            <div className="flex gap-2">
+              {!showTopUp && (
+                <button onClick={() => { setShowTopUp(true); setShowTransfer(false); }}
+                  className="flex-1 bg-green-50 border border-green-200 text-green-700 py-2 rounded-xl text-xs font-semibold hover:bg-green-100 transition-colors">
+                  + Contribution
+                </button>
+              )}
+              {!jar.isPersonal && otherUser && (
+                <button onClick={() => { setShowTransfer(true); setShowTopUp(false); }}
+                  className="flex-1 bg-brand-50 border border-brand-200 text-brand-700 py-2 rounded-xl text-xs font-semibold hover:bg-brand-100 transition-colors">
+                  Transfer
+                </button>
+              )}
+              {user?.role === 'ADMIN' && (
+                <button onClick={() => setConfirmArchive(true)}
+                  className="bg-brand-50 border border-brand-200 text-brand-700 py-2 px-3 rounded-xl text-xs font-semibold hover:bg-brand-100 transition-colors">
+                  Archive
+                </button>
+              )}
+            </div>
           )}
           {confirmArchive && (
             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-sm text-amber-800">
