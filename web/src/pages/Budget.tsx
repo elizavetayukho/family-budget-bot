@@ -28,6 +28,7 @@ export default function Budget() {
 
   const [editBrutto, setEditBrutto] = useState<Record<number, { open: boolean; value: string; reason: string }>>({});
   const [nettoInputs, setNettoInputs] = useState<Record<number, string>>({});
+  const [editNetto, setEditNetto] = useState<Record<number, boolean>>({});
   const [showHistory, setShowHistory] = useState<Record<number, boolean>>({});
   const [newOverhead, setNewOverhead] = useState({ name: '', amount: '' });
   const [editOverhead, setEditOverhead] = useState<Record<number, { name: string; amount: string }>>({});
@@ -78,6 +79,7 @@ export default function Budget() {
       await api.post('/income/netto', { month: currentMonth(), netto: parseFloat(val), userId });
       addToast('Netto saved', true);
       setNettoInputs((p) => ({ ...p, [userId]: '' }));
+      setEditNetto((p) => ({ ...p, [userId]: false }));
       await load();
     } finally {
       setBusy(false);
@@ -195,17 +197,29 @@ export default function Budget() {
                 <div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">Netto this month</span>
-                    <span className="text-sm font-medium">
-                      {income?.netto != null ? fmtPln(Number(income.netto)) : <span className="text-amber-600">Not set</span>}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">
+                        {income?.netto != null ? fmtPln(Number(income.netto)) : <span className="text-amber-600">Not set</span>}
+                      </span>
+                      {canEditNetto(u.id) && income?.netto != null && !editNetto[u.id] && (
+                        <button onClick={() => {
+                          setNettoInputs((p) => ({ ...p, [u.id]: String(income.netto) }));
+                          setEditNetto((p) => ({ ...p, [u.id]: true }));
+                        }} className="text-xs text-brand-600 hover:underline">Edit</button>
+                      )}
+                    </div>
                   </div>
-                  {income?.netto == null && canEditNetto(u.id) && (
+                  {canEditNetto(u.id) && (income?.netto == null || editNetto[u.id]) && (
                     <div className="flex items-center gap-2 mt-1">
                       <input type="number" value={nettoInputs[u.id] ?? ''}
                         onChange={(e) => setNettoInputs((p) => ({ ...p, [u.id]: e.target.value }))}
                         className="flex-1 bg-brand-50 border border-brand-200 rounded-xl px-3 py-2.5 text-sm text-brand-900 focus:outline-none focus:ring-2 focus:ring-brand-400" placeholder="Enter netto" />
                       <button onClick={() => saveNetto(u.id)} disabled={busy}
                         className="bg-brand-600 text-white px-3 py-2 rounded-xl text-sm disabled:opacity-50">Save</button>
+                      {editNetto[u.id] && (
+                        <button onClick={() => setEditNetto((p) => ({ ...p, [u.id]: false }))}
+                          className="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
+                      )}
                     </div>
                   )}
                 </div>
