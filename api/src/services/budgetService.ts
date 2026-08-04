@@ -83,11 +83,12 @@ async function resolveIncome(
 export async function calculateDashboard(requestingUserId: number): Promise<DashboardState> {
   const month = currentMonth();
 
-  const [users, overheads, jars, carryForwards] = await Promise.all([
+  const [users, overheads, jars, carryForwards, personCarryForwards] = await Promise.all([
     prisma.user.findMany({ orderBy: { id: 'asc' } }),
     prisma.overhead.findMany({ where: { active: true } }),
     prisma.jar.findMany({ where: { status: 'ACTIVE' } }),
     prisma.jarCarryForward.findMany({ where: { month } }),
+    prisma.jarPersonCarryForward.findMany({ where: { month } }),
   ]);
 
   const lizUser = users.find((u) => u.role === 'ADMIN')!;
@@ -177,6 +178,9 @@ export async function calculateDashboard(requestingUserId: number): Promise<Dash
     const totalOpeningBalance = openingBalanceLiz + openingBalanceEdgar;
     const balance = totalContribution - totalSpending + carryForward + totalOpeningBalance + totalTopUps;
 
+    // Per-person carry-forward takes precedence over static opening balance for myBalance
+    const personCarryMe = personCarryForwards.find((c) => c.jarId === jar.id && c.userId === requestingUserId);
+
     // Transfers within this jar this month
     const transfersOut = transfers
       .filter(t => t.fromUserId === requestingUserId)
@@ -192,7 +196,9 @@ export async function calculateDashboard(requestingUserId: number): Promise<Dash
 
     // Per-requesting-user share — use actual spending by this user, not proportional
     const myContribution = requestingUserId === lizUser.id ? contribLiz : contribEdgar;
-    const myOpeningBalance = requestingUserId === lizUser.id ? openingBalanceLiz : openingBalanceEdgar;
+    const staticOpeningBalance = requestingUserId === lizUser.id ? openingBalanceLiz : openingBalanceEdgar;
+    // Personal carry-forward (running per-person balance) takes precedence over static initialization field
+    const myOpeningBalance = personCarryMe ? Number(personCarryMe.amount) : staticOpeningBalance;
     const mySpendingShare = expenses
       .filter(e => e.userId === requestingUserId)
       .reduce((s, e) => s + Number(e.amountPln), 0);
