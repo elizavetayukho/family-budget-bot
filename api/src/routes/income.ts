@@ -34,13 +34,22 @@ router.post('/netto', requireAuth, async (req, res) => {
   const targetId = userId && isAdmin ? Number(userId) : req.user!.id;
   const m = month || currentMonth();
 
+  // Inherit brutto from previous month when creating a new record
+  const prevM = (() => {
+    const [y, mo] = m.split('-').map(Number);
+    const d = new Date(y, mo - 2, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  })();
+  const prevIncome = await prisma.income.findUnique({ where: { userId_month: { userId: targetId, month: prevM } } });
+  const inheritedBrutto = prevIncome?.brutto != null && Number(prevIncome.brutto) > 0 ? Number(prevIncome.brutto) : 0;
+
   const record = await prisma.income.upsert({
     where: { userId_month: { userId: targetId, month: m } },
     update: { netto },
     create: {
       userId: targetId,
       month: m,
-      brutto: 0,
+      brutto: inheritedBrutto,
       netto,
     },
   });

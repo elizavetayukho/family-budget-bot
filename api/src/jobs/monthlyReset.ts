@@ -107,7 +107,20 @@ export async function runMonthlyReset(): Promise<void> {
     },
   });
 
-  // 3. Save carry-forwards for new month
+  // 3. Carry brutto forward to new month for each user (if not already set)
+  for (const user of users) {
+    const prevIncome = incomes.find((i) => i.userId === user.id);
+    const brutto = prevIncome?.brutto;
+    if (brutto != null && Number(brutto) > 0) {
+      await prisma.income.upsert({
+        where: { userId_month: { userId: user.id, month: newMonth } },
+        update: {}, // don't overwrite if already exists
+        create: { userId: user.id, month: newMonth, brutto },
+      });
+    }
+  }
+
+  // 4. Save carry-forwards for new month
   for (const { jarId, amount } of newCarryForwards) {
     await prisma.jarCarryForward.upsert({
       where: { jarId_month: { jarId, month: newMonth } },

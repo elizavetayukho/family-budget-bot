@@ -69,8 +69,10 @@ async function resolveIncome(
     return { amount: Number(prev.netto), source: 'estimated' };
   }
 
-  // Fall back to brutto — current month first, then any brutto
-  const brutto = current?.brutto ?? prev?.brutto;
+  // Fall back to brutto — skip 0 (placeholder from netto-only records), prefer prev if current is 0
+  const currentBrutto = current?.brutto != null && Number(current.brutto) > 0 ? current.brutto : null;
+  const prevBrutto = prev?.brutto != null && Number(prev.brutto) > 0 ? prev.brutto : null;
+  const brutto = currentBrutto ?? prevBrutto;
   if (brutto != null) {
     return { amount: Number(brutto), source: 'brutto' };
   }
