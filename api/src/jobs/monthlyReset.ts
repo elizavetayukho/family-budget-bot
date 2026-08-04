@@ -253,6 +253,92 @@ export async function runMonthlyReset(): Promise<void> {
   console.log(`[Monthly Reset] Complete for ${closingMonth}`);
 }
 
+// Recompute per-person carry-forwards for closingMonth and save them as openings for the month after.
+// Safe to re-run: uses upsert. Does NOT re-run the full reset (no notifications, no brutto changes).
+export async function recalculatePersonCarryForwards(closingMonth: string): Promise<void> {
+  const [y, m] = closingMonth.split('-').map(Number);
+  const nextD = new Date(y, m, 1);
+  const openingMonth = `${nextD.getFullYear()}-${String(nextD.getMonth() + 1).padStart(2, '0')}`;
+
+  const startOfMonth = new Date(`${closingMonth}-01T00:00:00.000Z`);
+  const startOfNext = new Date(`${openingMonth}-01T00:00:00.000Z`);
+
+  const [users, jars, overheads, expenses, incomes, deductions, personCarryForwards, transfers, topUps] = await Promise.all([
+    prisma.user.findMany(),
+    prisma.jar.findMany(),
+    prisma.overhead.findMany({ where: { active: true } }),
+    prisma.expense.findMany({ where: { date: { gte: startOfMonth, lt: startOfNext } } }),
+    prisma.income.findMany({ where: { month: closingMonth } }),
+    prisma.personalDeduction.findMany({ where: { active: true } }),
+    prisma.jarPersonCarryForward.findMany({ where: { month: closingMonth } }),
+    prisma.jarTransfer.findMany({ where: { date: { gte: startOfMonth, lt: startOfNext } } }),
+    prisma.jarTopUp.findMany({ where: { date: { gte: startOfMonth, lt: startOfNext } } }),
+  ]);
+
+  const activeJars = jars.filter((j) => j.status === 'ACTIVE' && !j.isPersonal);
+  const totalOverheads = overheads.reduce((s: number, o: any) => s + Number(o.amountPln), 0);
+  const overheadShare = totalOverheads / 2;
+
+  async function getIncomeAmount(userId: number): Promise<number> {
+    const curr = incomes.find((i: any) => i.userId === userId);
+    if (curr?.netto != null) return Number(curr.netto);
+    const prev = await prisma.income.findUnique({ where: { userId_month: { userId, month: prevMonth(closingMonth) } } });
+    if (prev?.netto != null) return Number(prev.netto);
+    const currentBrutto = curr?.brutto != null && Number(curr.brutto) > 0 ? Number(curr.brutto) : null;
+    const prevBrutto = prev?.brutto != null && Number(prev.brutto) > 0 ? Number(prev.brutto) : null;
+    return currentBrutto ?? prevBrutto ?? 0;
+  }
+
+  for (const jar of activeJars) {
+    for (const user of users) {
+      const income = await getIncomeAmount(user.id);
+      const userDeductions = deductions
+        .filter((d: any) => d.userId === user.id)
+        .reduce((s: number, d: any) => s + Number(d.amountPln), 0);
+      const discretionary = income - overheadShare - userDeductions;
+
+      let myContribution: number;
+      const fixedAmount = (jar as { fixedAmountPln?: unknown }).fixedAmountPln;
+      if (fixedAmount != null) {
+        myContribution = Number(fixedAmount);
+      } else if (jar.isFood) {
+        myContribution = 1000;
+      } else {
+        myContribution = (discretionary * Number(jar.percent)) / 100;
+      }
+
+      const mySpending = expenses
+        .filter((e: any) => e.jarId === jar.id && e.userId === user.id)
+        .reduce((s: number, e: any) => s + Number(e.amountPln), 0);
+
+      const prevPersonCarry = personCarryForwards.find(
+        (c: any) => c.jarId === jar.id && c.userId === user.id
+      );
+      const myOpeningBalance = prevPersonCarry ? Number(prevPersonCarry.amount) : 0;
+
+      const myTransfersIn = transfers
+        .filter((t: any) => t.jarId === jar.id && t.toUserId === user.id)
+        .reduce((s: number, t: any) => s + Number(t.amountPln), 0);
+      const myTransfersOut = transfers
+        .filter((t: any) => t.jarId === jar.id && t.fromUserId === user.id)
+        .reduce((s: number, t: any) => s + Number(t.amountPln), 0);
+      const myTopUpsTotal = topUps
+        .filter((t: any) => t.jarId === jar.id && t.userId === user.id)
+        .reduce((s: number, t: any) => s + Number(t.amountPln), 0);
+
+      const myCarryOut = myContribution - mySpending + myOpeningBalance + myTransfersIn - myTransfersOut + myTopUpsTotal;
+
+      await prisma.jarPersonCarryForward.upsert({
+        where: { userId_jarId_month: { userId: user.id, jarId: jar.id, month: openingMonth } },
+        update: { amount: myCarryOut },
+        create: { userId: user.id, jarId: jar.id, month: openingMonth, amount: myCarryOut },
+      });
+    }
+  }
+
+  console.log(`[Recalculate] Person carry-forwards for ${closingMonth} → ${openingMonth} done`);
+}
+
 function formatPln(amount: number): string {
   return `${Math.abs(amount).toFixed(2)} PLN`;
 }

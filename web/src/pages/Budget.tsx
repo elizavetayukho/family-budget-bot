@@ -139,6 +139,20 @@ export default function Budget() {
 
   const canEditNetto = (userId: number) => userId === user?.id || isAdmin;
 
+  const recalculateCarries = async () => {
+    const prevM = (() => {
+      const d = new Date(); d.setMonth(d.getMonth() - 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    })();
+    setBusy(true);
+    try {
+      await api.post('/admin/recalculate-carries', { closingMonth: prevM });
+      addToast(`Carry-forwards recalculated for ${prevM}`, true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const [openSections, setOpenSections] = useState({ income: true, overheads: true, deductions: true });
   const toggleSection = (s: keyof typeof openSections) =>
     setOpenSections(p => ({ ...p, [s]: !p[s] }));
@@ -400,6 +414,24 @@ export default function Budget() {
           })}
         </div>}
       </section>
+
+      {isAdmin && (
+        <section className="pt-2 border-t border-brand-100">
+          <h2 className="text-base font-semibold text-brand-900 mb-3">Admin tools</h2>
+          <div className="bg-white rounded-2xl shadow-sm border border-brand-100 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-800">Recalculate carry-forwards</p>
+                <p className="text-xs text-gray-500 mt-0.5">Recomputes last month's per-person balances. Safe to re-run — no notifications sent.</p>
+              </div>
+              <button onClick={recalculateCarries} disabled={busy}
+                className="bg-brand-600 text-white px-4 py-2 rounded-xl text-sm disabled:opacity-50 whitespace-nowrap">
+                Run now
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
