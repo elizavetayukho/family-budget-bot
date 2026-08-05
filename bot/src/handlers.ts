@@ -84,6 +84,28 @@ export async function handleLinkCode(ctx: BotContext) {
 
 // ── Balance check ─────────────────────────────────────────────────────────────
 
+function currentMonth(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function prevMonthOf(month: string): string {
+  const [y, m] = month.split('-').map(Number);
+  const d = new Date(y, m - 2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+// Same logic as budgetService.resolveIncome
+async function resolveIncomeForUser(userId: number, month: string): Promise<number> {
+  const current = await prisma.income.findUnique({ where: { userId_month: { userId, month } } });
+  if (current?.netto != null) return Number(current.netto);
+  const prev = await prisma.income.findUnique({ where: { userId_month: { userId, month: prevMonthOf(month) } } });
+  if (prev?.netto != null) return Number(prev.netto);
+  const currentBrutto = current?.brutto != null && Number(current.brutto) > 0 ? Number(current.brutto) : null;
+  const prevBrutto = prev?.brutto != null && Number(prev.brutto) > 0 ? Number(prev.brutto) : null;
+  return currentBrutto ?? prevBrutto ?? 0;
+}
+
 export async function handleBalance(ctx: BotContext, jarHint?: string) {
   const telegramId = String(ctx.from!.id);
   const user = await resolveUser(telegramId);
@@ -92,76 +114,98 @@ export async function handleBalance(ctx: BotContext, jarHint?: string) {
   }
 
   const isPrivate = ctx.chat?.type === 'private';
-  const jars = await getActiveJars();
-
-  const month = (() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  })();
-
+  const month = currentMonth();
   const startOfMonth = new Date(`${month}-01T00:00:00.000Z`);
   const endOfMonth = new Date(new Date(startOfMonth).setMonth(startOfMonth.getMonth() + 1));
   const daysInMonth = Math.round((endOfMonth.getTime() - startOfMonth.getTime()) / 86400000);
   const today = new Date().getDate();
 
-  const targetJars = jarHint
-    ? (() => {
-        const match = fuzzyFindJar(jarHint, jars.filter(j => !j.isPersonal));
-        return match ? [match.jar] : [];
-      })()
-    : jars.filter((j) => !j.isPersonal);
+  const [allJars, overheads, allUsers, personCarryForwards] = await Promise.all([
+    prisma.jar.findMany({ where: { status: 'ACTIVE' } }),
+    prisma.overhead.findMany({ where: { active: true } }),
+    prisma.user.findMany(),
+    prisma.jarPersonCarryForward.findMany({ where: { month } }),
+  ]);
 
-  if (targetJars.length === 0) return ctx.reply(`Couldn't find that jar.`);
-
-  const overheads = await prisma.overhead.findMany({ where: { active: true } });
   const totalOverheads = overheads.reduce((s, o) => s + Number(o.amountPln), 0);
   const overheadShare = totalOverheads / 2;
-  const allUsers = await prisma.user.findMany();
+
+  // Resolve income + compute per-jar contributions for every user
+  const userContributions: Record<number, Record<number, number>> = {};
+  const userDiscretionary: Record<number, number> = {};
+  const sharedJars = allJars.filter(j => !j.isPersonal);
+
+  for (const u of allUsers) {
+    const income = await resolveIncomeForUser(u.id, month);
+    const deductions = await prisma.personalDeduction.findMany({ where: { userId: u.id, active: true } });
+    const deductTotal = deductions.reduce((s, d) => s + Number(d.amountPln), 0);
+    const disc = income - overheadShare - deductTotal;
+    userDiscretionary[u.id] = disc;
+    userContributions[u.id] = {};
+    for (const jar of sharedJars) {
+      const fixed = (jar as any).fixedAmountPln;
+      userContributions[u.id][jar.id] = fixed != null ? Number(fixed) : jar.isFood ? 1000 : (disc * Number(jar.percent)) / 100;
+    }
+  }
+
+  const targetJars = jarHint
+    ? (() => { const m = fuzzyFindJar(jarHint, sharedJars); return m ? [m.jar] : []; })()
+    : sharedJars;
+
+  if (targetJars.length === 0) return ctx.reply(`Couldn't find that jar.`);
 
   const lines: string[] = [];
 
   for (const jar of targetJars) {
-    if (jar.isPersonal && !isPrivate) continue;
+    const [expenses, transfers, topUps] = await Promise.all([
+      prisma.expense.findMany({ where: { jarId: jar.id, date: { gte: startOfMonth, lt: endOfMonth } } }),
+      prisma.jarTransfer.findMany({ where: { jarId: jar.id, date: { gte: startOfMonth, lt: endOfMonth } } }),
+      prisma.jarTopUp.findMany({ where: { jarId: jar.id, date: { gte: startOfMonth, lt: endOfMonth } } }),
+    ]);
 
-    const expenses = await prisma.expense.findMany({
-      where: { jarId: jar.id, date: { gte: startOfMonth, lt: endOfMonth } },
-    });
-    const totalSpent = expenses.reduce((s, e) => s + Number(e.amountPln), 0);
+    const totalTopUpsAmt = topUps.reduce((s, t) => s + Number(t.amountPln), 0);
+    const totalSpend = expenses.reduce((s, e) => s + Number(e.amountPln), 0);
+    const totalContrib = allUsers.reduce((s, u) => s + (userContributions[u.id]?.[jar.id] ?? 0), 0);
 
-    let totalContribution = 0;
-    for (const u of allUsers) {
-      const income = await prisma.income.findUnique({ where: { userId_month: { userId: u.id, month } } });
-      const deductions = await prisma.personalDeduction.findMany({ where: { userId: u.id, active: true } });
-      const deductTotal = deductions.reduce((s, d) => s + Number(d.amountPln), 0);
-      const inc = Number(income?.netto ?? income?.brutto ?? 0);
-      const disc = inc - overheadShare - deductTotal;
-      totalContribution += jar.isFood ? 1000 : (disc * Number(jar.percent)) / 100;
-    }
+    // Per-person carry-forwards (same source as dashboard)
+    const myPersonCarry = personCarryForwards.find(c => c.jarId === jar.id && c.userId === user.id);
+    const totalOpening = allUsers.reduce((s, u) => {
+      const c = personCarryForwards.find(pc => pc.jarId === jar.id && pc.userId === u.id);
+      return s + (c ? Number(c.amount) : 0);
+    }, 0);
 
-    const carry = await prisma.jarCarryForward.findUnique({ where: { jarId_month: { jarId: jar.id, month } } });
-    const balance = totalContribution - totalSpent + Number(carry?.amount ?? 0);
-    lines.push(`${jar.name}: ${fmt(balance)} PLN left · Day ${today}/${daysInMonth}`);
+    const myOpening = myPersonCarry ? Number(myPersonCarry.amount) : 0;
+    const myContrib = userContributions[user.id]?.[jar.id] ?? 0;
+    const mySpend = expenses.filter(e => e.userId === user.id).reduce((s, e) => s + Number(e.amountPln), 0);
+    const myTransfersIn = transfers.filter(t => t.toUserId === user.id).reduce((s, t) => s + Number(t.amountPln), 0);
+    const myTransfersOut = transfers.filter(t => t.fromUserId === user.id).reduce((s, t) => s + Number(t.amountPln), 0);
+    const myTopUps = topUps.filter(t => t.userId === user.id).reduce((s, t) => s + Number(t.amountPln), 0);
+    const myBalance = myContrib + myOpening - mySpend + myTransfersIn - myTransfersOut + myTopUps;
+
+    const commonBalance = totalContrib + totalOpening - totalSpend + totalTopUpsAmt;
+
+    const carryNote = myOpening !== 0 ? ` (carry ${myOpening > 0 ? '+' : ''}${fmt(myOpening)})` : '';
+    lines.push(
+      `*${jar.name}*\n` +
+      `  You: ${fmt(myBalance)} PLN${carryNote}\n` +
+      `  Common: ${fmt(commonBalance)} PLN · Day ${today}/${daysInMonth}`
+    );
   }
 
-  if (isPrivate) {
-    const personalJar = await prisma.jar.findFirst({ where: { isPersonal: true } });
+  if (isPrivate && !jarHint) {
+    const personalJar = allJars.find(j => j.isPersonal);
     if (personalJar) {
       const personalExpenses = await prisma.expense.findMany({
         where: { jarId: personalJar.id, userId: user.id, date: { gte: startOfMonth, lt: endOfMonth } },
       });
       const personalSpent = personalExpenses.reduce((s, e) => s + Number(e.amountPln), 0);
-      const income = await prisma.income.findUnique({ where: { userId_month: { userId: user.id, month } } });
-      const deductions = await prisma.personalDeduction.findMany({ where: { userId: user.id, active: true } });
-      const deductTotal = deductions.reduce((s, d) => s + Number(d.amountPln), 0);
-      const inc = Number(income?.netto ?? income?.brutto ?? 0);
-      const disc = inc - overheadShare - deductTotal;
-      const sharedJarsList = await prisma.jar.findMany({ where: { status: 'ACTIVE', isPersonal: false, isFood: false } });
-      const contributions = sharedJarsList.reduce((s, j) => s + (disc * Number(j.percent)) / 100, 0);
-      lines.push(`Personal: ${fmt(disc - contributions - personalSpent)} PLN`);
+      const disc = userDiscretionary[user.id] ?? 0;
+      const sharedContribs = sharedJars.reduce((s, j) => s + (userContributions[user.id]?.[j.id] ?? 0), 0);
+      lines.push(`*Personal jar*\n  ${fmt(disc - sharedContribs - personalSpent)} PLN`);
     }
   }
 
-  await ctx.reply(lines.join('\n') || 'No jars found.');
+  await ctx.reply(lines.join('\n\n') || 'No jars found.', { parse_mode: 'Markdown' });
 }
 
 // ── Expense logging ───────────────────────────────────────────────────────────
