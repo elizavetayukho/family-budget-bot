@@ -1,9 +1,6 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { requireAuth, requireAdmin } from '../middleware/auth';
 import { runMonthlyReset, recalculatePersonCarryForwards } from '../jobs/monthlyReset';
-
-const prisma = new PrismaClient();
 
 const router = Router();
 
@@ -31,33 +28,6 @@ router.post('/recalculate-carries', requireAuth, requireAdmin, async (req, res) 
     console.error(e);
     res.status(500).json({ error: 'Recalculate failed', detail: String(e) });
   }
-});
-
-// Manually set a per-person carry-forward (opening balance) for a jar × user × month
-router.post('/set-carry-forward', requireAuth, requireAdmin, async (req, res) => {
-  const { userId, jarId, month, amount } = req.body;
-  if (!userId || !jarId || !month || amount === undefined) {
-    return res.status(400).json({ error: 'userId, jarId, month, amount required' });
-  }
-  try {
-    const record = await prisma.jarPersonCarryForward.upsert({
-      where: { userId_jarId_month: { userId: Number(userId), jarId: Number(jarId), month } },
-      update: { amount: Number(amount) },
-      create: { userId: Number(userId), jarId: Number(jarId), month, amount: Number(amount) },
-    });
-    res.json(record);
-  } catch (e) {
-    res.status(500).json({ error: String(e) });
-  }
-});
-
-// Get current carry-forwards for a given month
-router.get('/carry-forwards/:month', requireAuth, requireAdmin, async (req, res) => {
-  const records = await prisma.jarPersonCarryForward.findMany({
-    where: { month: req.params.month },
-    include: { user: { select: { id: true, name: true } }, jar: { select: { id: true, name: true } } },
-  });
-  res.json(records);
 });
 
 export default router;

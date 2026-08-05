@@ -254,51 +254,59 @@ export async function runMonthlyReset(): Promise<void> {
 }
 
 // Recompute per-person carry-forwards for closingMonth and save them as openings for the month after.
+// Uses the MonthlySnapshot so income exactly matches what the dashboard showed for closingMonth.
 // Safe to re-run: uses upsert. Does NOT re-run the full reset (no notifications, no brutto changes).
 export async function recalculatePersonCarryForwards(closingMonth: string): Promise<void> {
   const [y, m] = closingMonth.split('-').map(Number);
   const nextD = new Date(y, m, 1);
   const openingMonth = `${nextD.getFullYear()}-${String(nextD.getMonth() + 1).padStart(2, '0')}`;
 
+  const snapshot = await prisma.monthlySnapshot.findUnique({ where: { month: closingMonth } });
+  if (!snapshot) {
+    throw new Error(`No snapshot found for ${closingMonth}. Run the monthly reset first.`);
+  }
+  const snapData = snapshot.snapshotData as any;
+
+  // Use snapshot data so income/overheads/deductions match what was shown that month
+  const users: any[] = snapData.users;
+  const jars: any[] = snapData.jars;
+  const overheads: any[] = snapData.overheads ?? [];
+  const deductions: any[] = snapData.deductions ?? [];
+  const incomes: any[] = snapData.incomes ?? [];
+
   const startOfMonth = new Date(`${closingMonth}-01T00:00:00.000Z`);
   const startOfNext = new Date(`${openingMonth}-01T00:00:00.000Z`);
 
-  const [users, jars, overheads, expenses, incomes, deductions, personCarryForwards, transfers, topUps] = await Promise.all([
-    prisma.user.findMany(),
-    prisma.jar.findMany(),
-    prisma.overhead.findMany({ where: { active: true } }),
+  const [expenses, transfers, topUps, personCarryForwards] = await Promise.all([
     prisma.expense.findMany({ where: { date: { gte: startOfMonth, lt: startOfNext } } }),
-    prisma.income.findMany({ where: { month: closingMonth } }),
-    prisma.personalDeduction.findMany({ where: { active: true } }),
-    prisma.jarPersonCarryForward.findMany({ where: { month: closingMonth } }),
     prisma.jarTransfer.findMany({ where: { date: { gte: startOfMonth, lt: startOfNext } } }),
     prisma.jarTopUp.findMany({ where: { date: { gte: startOfMonth, lt: startOfNext } } }),
+    // opening balances that were active at the START of closingMonth
+    prisma.jarPersonCarryForward.findMany({ where: { month: closingMonth } }),
   ]);
 
-  const activeJars = jars.filter((j) => j.status === 'ACTIVE' && !j.isPersonal);
+  const activeJars = jars.filter((j: any) => j.status === 'ACTIVE' && !j.isPersonal);
   const totalOverheads = overheads.reduce((s: number, o: any) => s + Number(o.amountPln), 0);
   const overheadShare = totalOverheads / 2;
 
-  async function getIncomeAmount(userId: number): Promise<number> {
-    const curr = incomes.find((i: any) => i.userId === userId);
-    if (curr?.netto != null) return Number(curr.netto);
-    const prev = await prisma.income.findUnique({ where: { userId_month: { userId, month: prevMonth(closingMonth) } } });
-    if (prev?.netto != null) return Number(prev.netto);
-    const currentBrutto = curr?.brutto != null && Number(curr.brutto) > 0 ? Number(curr.brutto) : null;
-    const prevBrutto = prev?.brutto != null && Number(prev.brutto) > 0 ? Number(prev.brutto) : null;
-    return currentBrutto ?? prevBrutto ?? 0;
+  // Use income directly from snapshot — no prev-month fallback.
+  // This matches the OLD dashboard behaviour: if brutto=0 and netto=null, income=0.
+  function getIncomeFromSnapshot(userId: number): number {
+    const inc = incomes.find((i: any) => i.userId === userId);
+    if (inc?.netto != null) return Number(inc.netto);
+    return Number(inc?.brutto ?? 0);
   }
 
   for (const jar of activeJars) {
     for (const user of users) {
-      const income = await getIncomeAmount(user.id);
+      const income = getIncomeFromSnapshot(user.id);
       const userDeductions = deductions
-        .filter((d: any) => d.userId === user.id)
+        .filter((d: any) => d.userId === user.id && d.active !== false)
         .reduce((s: number, d: any) => s + Number(d.amountPln), 0);
       const discretionary = income - overheadShare - userDeductions;
 
       let myContribution: number;
-      const fixedAmount = (jar as { fixedAmountPln?: unknown }).fixedAmountPln;
+      const fixedAmount = jar.fixedAmountPln;
       if (fixedAmount != null) {
         myContribution = Number(fixedAmount);
       } else if (jar.isFood) {
@@ -326,7 +334,7 @@ export async function recalculatePersonCarryForwards(closingMonth: string): Prom
         .filter((t: any) => t.jarId === jar.id && t.userId === user.id)
         .reduce((s: number, t: any) => s + Number(t.amountPln), 0);
 
-      const myCarryOut = myContribution - mySpending + myOpeningBalance + myTransfersIn - myTransfersOut + myTopUpsTotal;
+      const myCarryOut = myContribution + myOpeningBalance - mySpending + myTransfersIn - myTransfersOut + myTopUpsTotal;
 
       await prisma.jarPersonCarryForward.upsert({
         where: { userId_jarId_month: { userId: user.id, jarId: jar.id, month: openingMonth } },

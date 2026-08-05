@@ -84,11 +84,10 @@ async function resolveIncome(
 export async function calculateDashboard(requestingUserId: number): Promise<DashboardState> {
   const month = currentMonth();
 
-  const [users, overheads, jars, carryForwards, personCarryForwards] = await Promise.all([
+  const [users, overheads, jars, personCarryForwards] = await Promise.all([
     prisma.user.findMany({ orderBy: { id: 'asc' } }),
     prisma.overhead.findMany({ where: { active: true } }),
     prisma.jar.findMany({ where: { status: 'ACTIVE' } }),
-    prisma.jarCarryForward.findMany({ where: { month } }),
     prisma.jarPersonCarryForward.findMany({ where: { month } }),
   ]);
 
@@ -166,18 +165,21 @@ export async function calculateDashboard(requestingUserId: number): Promise<Dash
     const totalSpending = expenses.reduce((s, e) => s + Number(e.amountPln), 0);
     const totalTopUps = topUps.reduce((s, t) => s + Number(t.amountPln), 0);
 
-    const carry = carryForwards.find((c) => c.jarId === jar.id);
-    const carryForward = carry ? Number(carry.amount) : 0;
-
     const contribLiz = liz.jarContributions[jar.id] ?? 0;
     const contribEdgar = edgar.jarContributions[jar.id] ?? 0;
     const totalContribution = contribLiz + contribEdgar;
 
-    const balance = totalContribution - totalSpending + carryForward + totalTopUps;
+    // Per-person carry-forwards are the single source of truth for all balance calculations
+    const lizPersonCarry = personCarryForwards.find(c => c.jarId === jar.id && c.userId === lizUser.id);
+    const edgarPersonCarry = personCarryForwards.find(c => c.jarId === jar.id && c.userId === edgarUser.id);
+    const lizOpening = lizPersonCarry ? Number(lizPersonCarry.amount) : 0;
+    const edgarOpening = edgarPersonCarry ? Number(edgarPersonCarry.amount) : 0;
+    const carryForward = lizOpening + edgarOpening;
 
-    // Per-person carry-forward (replaces the deprecated static openingBalanceLiz/Edgar fields)
-    const personCarryMe = personCarryForwards.find((c) => c.jarId === jar.id && c.userId === requestingUserId);
-    const personCarryOther = personCarryForwards.find((c) => c.jarId === jar.id && c.userId !== requestingUserId);
+    const balance = totalContribution + carryForward - totalSpending + totalTopUps;
+
+    const personCarryMe = requestingUserId === lizUser.id ? lizPersonCarry : edgarPersonCarry;
+    const personCarryOther = requestingUserId === lizUser.id ? edgarPersonCarry : lizPersonCarry;
 
     // Transfers within this jar this month
     const transfersOut = transfers
