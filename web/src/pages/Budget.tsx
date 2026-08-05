@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 interface UserInfo { id: number; name: string; role: string }
+interface Jar { id: number; name: string }
+interface CarryForwardRecord { userId: number; jarId: number; month: string; amount: string; user: { name: string }; jar: { name: string } }
 interface IncomeRecord { userId: number; month: string; brutto: number; netto?: number; bruttoHistory: BruttoEntry[] }
 interface BruttoEntry { previousValue: number; newValue: number; effectiveDate: string; reason?: string }
 interface Overhead { id: number; name: string; amountPln: number; isOneOff: boolean }
@@ -34,6 +36,9 @@ export default function Budget() {
   const [editOverhead, setEditOverhead] = useState<Record<number, { name: string; amount: string }>>({});
   const [newDeduction, setNewDeduction] = useState<Record<number, { name: string; amount: string }>>({});
   const [editDeduction, setEditDeduction] = useState<Record<number, { name: string; amount: string }>>({});
+  const [jars, setJars] = useState<Jar[]>([]);
+  const [carryForwards, setCarryForwards] = useState<CarryForwardRecord[]>([]);
+  const [carryInputs, setCarryInputs] = useState<Record<string, string>>({});
 
   const currentMonth = () => {
     const d = new Date();
@@ -45,7 +50,6 @@ export default function Budget() {
     setUsers(summary.users);
     setOverheads(summary.overheads);
 
-    // Load all deductions (admin gets all, user gets own)
     const deds = await api.get<Deduction[]>('/deductions');
     setDeductions(deds);
 
@@ -53,6 +57,18 @@ export default function Budget() {
       summary.users.map((u) => api.get<IncomeRecord[]>(`/income/history/${u.id}`).catch(() => []))
     );
     setIncomes(fullIncomes.flat());
+
+    if (summary.users.some(u => u.role === 'ADMIN')) {
+      const [jarList, carries] = await Promise.all([
+        api.get<Jar[]>('/jars').catch(() => [] as Jar[]),
+        api.get<CarryForwardRecord[]>(`/admin/carry-forwards/${currentMonth()}`).catch(() => [] as CarryForwardRecord[]),
+      ]);
+      setJars(jarList.filter((j: any) => !j.isPersonal && j.status === 'ACTIVE'));
+      setCarryForwards(carries);
+      const inputs: Record<string, string> = {};
+      for (const c of carries) inputs[`${c.userId}_${c.jarId}`] = Number(c.amount).toFixed(2);
+      setCarryInputs(inputs);
+    }
   };
 
   useEffect(() => { load(); }, []);
@@ -138,6 +154,20 @@ export default function Budget() {
   const getDeductions = (userId: number) => deductions.filter((d) => d.userId === userId);
 
   const canEditNetto = (userId: number) => userId === user?.id || isAdmin;
+
+  const saveCarryForward = async (userId: number, jarId: number) => {
+    const key = `${userId}_${jarId}`;
+    const val = carryInputs[key];
+    if (val === undefined || val === '') return;
+    setBusy(true);
+    try {
+      await api.post('/admin/set-carry-forward', { userId, jarId, month: currentMonth(), amount: parseFloat(val) });
+      addToast('Carry-forward saved', true);
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const recalculateCarries = async () => {
     const prevM = (() => {
@@ -417,18 +447,52 @@ export default function Budget() {
 
       {isAdmin && (
         <section className="pt-2 border-t border-brand-100">
-          <h2 className="text-base font-semibold text-brand-900 mb-3">Admin tools</h2>
-          <div className="bg-white rounded-2xl shadow-sm border border-brand-100 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-800">Recalculate carry-forwards</p>
-                <p className="text-xs text-gray-500 mt-0.5">Recomputes last month's per-person balances. Safe to re-run — no notifications sent.</p>
-              </div>
-              <button onClick={recalculateCarries} disabled={busy}
-                className="bg-brand-600 text-white px-4 py-2 rounded-xl text-sm disabled:opacity-50 whitespace-nowrap">
-                Run now
-              </button>
-            </div>
+          <h2 className="text-base font-semibold text-brand-900 mb-3">Opening balances (this month)</h2>
+          <p className="text-xs text-gray-500 mb-3">Set the opening balance (carry-forward from last month) per person per jar. This is applied as the starting balance for the current month.</p>
+          <div className="bg-white rounded-2xl shadow-sm border border-brand-100 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="text-xs font-semibold text-gray-500 border-b bg-brand-50">
+                <tr>
+                  <th className="text-left px-4 py-2">Jar</th>
+                  {users.map(u => <th key={u.id} className="text-right px-4 py-2">{u.name}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {jars.map(jar => (
+                  <tr key={jar.id} className="border-b last:border-0">
+                    <td className="px-4 py-2 font-medium text-brand-900">{jar.name}</td>
+                    {users.map(u => {
+                      const key = `${u.id}_${jar.id}`;
+                      const current = carryForwards.find(c => c.userId === u.id && c.jarId === jar.id);
+                      return (
+                        <td key={u.id} className="px-4 py-2">
+                          <div className="flex items-center gap-1.5 justify-end">
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={carryInputs[key] ?? (current ? Number(current.amount).toFixed(2) : '')}
+                              onChange={e => setCarryInputs(p => ({ ...p, [key]: e.target.value }))}
+                              placeholder="0.00"
+                              className="w-24 text-right bg-brand-50 border border-brand-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
+                            />
+                            <button onClick={() => saveCarryForward(u.id, jar.id)} disabled={busy}
+                              className="text-xs bg-brand-600 text-white px-2 py-1.5 rounded-lg disabled:opacity-50">
+                              Set
+                            </button>
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-3">
+            <button onClick={recalculateCarries} disabled={busy}
+              className="text-xs text-brand-600 hover:underline disabled:opacity-50">
+              Auto-recalculate from last month's data
+            </button>
           </div>
         </section>
       )}

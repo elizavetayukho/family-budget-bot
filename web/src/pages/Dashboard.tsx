@@ -16,7 +16,7 @@ interface JarBalance {
   id: number; name: string; percent: number; isPersonal: boolean; isFood: boolean;
   balance: number; totalContribution: number; totalSpending: number; carryForward: number;
   myContribution: number; mySpendingShare: number; myBalance: number;
-  openingBalance: number;
+  openingBalance: number; otherOpeningBalance: number;
 }
 
 interface DashboardState {
@@ -180,6 +180,14 @@ export default function Dashboard() {
                     <span>Contributed {fmtPln(contribution)}</span>
                     <span>Spent {fmtPln(spending)}</span>
                   </div>
+                  {(() => {
+                    const opening = person === 'lizaveta' ? jar.openingBalance : jar.otherOpeningBalance;
+                    return opening !== 0 ? (
+                      <div className="text-xs mt-0.5" style={{ color: opening < 0 ? '#ef4444' : '#16a34a' }}>
+                        From last month: {opening > 0 ? '+' : ''}{fmtPln(opening)}
+                      </div>
+                    ) : null;
+                  })()}
                 </button>
               );
             })}

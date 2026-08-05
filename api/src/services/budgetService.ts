@@ -20,6 +20,7 @@ export interface JarBalance {
   mySpendingShare: number;
   myBalance: number;
   openingBalance: number;
+  otherOpeningBalance: number;
 }
 
 export interface PersonResult {
@@ -172,14 +173,11 @@ export async function calculateDashboard(requestingUserId: number): Promise<Dash
     const contribEdgar = edgar.jarContributions[jar.id] ?? 0;
     const totalContribution = contribLiz + contribEdgar;
 
-    const j = jar as { openingBalanceLiz?: unknown; openingBalanceEdgar?: unknown };
-    const openingBalanceLiz = Number(j.openingBalanceLiz ?? 0);
-    const openingBalanceEdgar = Number(j.openingBalanceEdgar ?? 0);
-    const totalOpeningBalance = openingBalanceLiz + openingBalanceEdgar;
-    const balance = totalContribution - totalSpending + carryForward + totalOpeningBalance + totalTopUps;
+    const balance = totalContribution - totalSpending + carryForward + totalTopUps;
 
-    // Per-person carry-forward takes precedence over static opening balance for myBalance
+    // Per-person carry-forward (replaces the deprecated static openingBalanceLiz/Edgar fields)
     const personCarryMe = personCarryForwards.find((c) => c.jarId === jar.id && c.userId === requestingUserId);
+    const personCarryOther = personCarryForwards.find((c) => c.jarId === jar.id && c.userId !== requestingUserId);
 
     // Transfers within this jar this month
     const transfersOut = transfers
@@ -196,9 +194,8 @@ export async function calculateDashboard(requestingUserId: number): Promise<Dash
 
     // Per-requesting-user share — use actual spending by this user, not proportional
     const myContribution = requestingUserId === lizUser.id ? contribLiz : contribEdgar;
-    const staticOpeningBalance = requestingUserId === lizUser.id ? openingBalanceLiz : openingBalanceEdgar;
-    // Personal carry-forward (running per-person balance) takes precedence over static initialization field
-    const myOpeningBalance = personCarryMe ? Number(personCarryMe.amount) : staticOpeningBalance;
+    const myOpeningBalance = personCarryMe ? Number(personCarryMe.amount) : 0;
+    const otherOpeningBalance = personCarryOther ? Number(personCarryOther.amount) : 0;
     const mySpendingShare = expenses
       .filter(e => e.userId === requestingUserId)
       .reduce((s, e) => s + Number(e.amountPln), 0);
@@ -221,6 +218,7 @@ export async function calculateDashboard(requestingUserId: number): Promise<Dash
       mySpendingShare,
       myBalance,
       openingBalance: myOpeningBalance,
+      otherOpeningBalance,
     });
   }
 
