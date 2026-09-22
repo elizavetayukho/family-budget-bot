@@ -110,7 +110,7 @@ export async function handleBalance(ctx: BotContext, jarHint?: string) {
   const telegramId = String(ctx.from!.id);
   const user = await resolveUser(telegramId);
   if (!user) {
-    return ctx.reply(`Link your Telegram account first at ${WEB_URL}/account`);
+    return ctx.reply(`Your Telegram isn't linked yet.\n\n1. Open the app → Account\n2. Tap "Generate code"\n3. Send the 6-digit code here`);
   }
 
   const isPrivate = ctx.chat?.type === 'private';
@@ -213,7 +213,7 @@ export async function handleBalance(ctx: BotContext, jarHint?: string) {
 export async function handleExpenseText(ctx: BotContext) {
   const telegramId = String(ctx.from!.id);
   const user = await resolveUser(telegramId);
-  if (!user) return ctx.reply(`Link your Telegram account first at ${WEB_URL}/account`);
+  if (!user) return ctx.reply(`Your Telegram isn't linked yet.\n\n1. Open the app → Account\n2. Tap "Generate code"\n3. Send the 6-digit code here`);
 
   const text = ctx.message?.text ?? '';
   const parsed = parseExpenseAmount(text);
@@ -343,10 +343,10 @@ export async function handleDescriptionInput(ctx: BotContext) {
 async function saveExpense(ctx: BotContext) {
   const telegramId = String(ctx.from!.id);
   const user = await resolveUser(telegramId);
-  if (!user) return ctx.editMessageText('Error: user not found.');
+  if (!user) return ctx.editMessageText(`Account not linked. Go to the app → Account and send the 6-digit code here.`);
 
   const session = ctx.session.expense;
-  if (!session) return ctx.editMessageText('Nothing to save.');
+  if (!session) return ctx.editMessageText('Session expired — please re-send the expense (e.g. "50 eating out").');
 
   const { amount = 0, currency = 'PLN', jarId, rate, description } = session;
   const amountPln = currency === 'PLN' ? amount : amount * (rate ?? 1);

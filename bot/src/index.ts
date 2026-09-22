@@ -19,6 +19,8 @@ const bot = new Bot<BotContext>(process.env.TELEGRAM_BOT_TOKEN!);
 
 bot.use(session<SessionData, BotContext>({
   initial: (): SessionData => ({}),
+  // Per-user key so group-chat members don't share session state
+  getSessionKey: (ctx) => ctx.from ? `${ctx.chat?.id}_${ctx.from.id}` : undefined,
 }));
 
 // Set the command menu that appears when user taps the input field
@@ -186,8 +188,13 @@ bot.on('message:text', async (ctx) => {
   }
 });
 
-bot.catch((err) => {
-  console.error('[Bot error]', err);
+bot.catch(async (err) => {
+  console.error('[Bot error]', err.error, err.ctx?.message?.text ?? err.ctx?.callbackQuery?.data);
+  try {
+    await err.ctx.reply('Something went wrong. Try again or contact @lizaveta.');
+  } catch {
+    // can't reply (e.g. callback context without a chat)
+  }
 });
 
 bot.start();
